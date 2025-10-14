@@ -31,7 +31,6 @@ return function(Tab, Window, WindUI)
     --  Core Logic
     -- ================================= --
 
-    -- NEW: More robust function to disable/enable player control scripts
     local function setPlayerScriptsEnabled(enabled)
         local playerScripts = LocalPlayer:FindFirstChild("PlayerScripts")
         if playerScripts then
@@ -60,7 +59,6 @@ return function(Tab, Window, WindUI)
         ContextActionService:UnbindAction("SpyCameraControlS")
         ContextActionService:UnbindAction("SpyCameraControlD")
 
-        -- Restore character movement and controls
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
             LocalPlayer.Character.Humanoid.WalkSpeed = 16
             LocalPlayer.Character.Humanoid.JumpPower = 50
@@ -98,7 +96,6 @@ return function(Tab, Window, WindUI)
         createKeybind("SpyCameraControlS", Enum.KeyCode.S)
         createKeybind("SpyCameraControlD", Enum.KeyCode.D)
 
-        -- Disable player controls and freeze character
         setPlayerScriptsEnabled(false)
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
             LocalPlayer.Character.Humanoid.WalkSpeed = 0
@@ -122,24 +119,20 @@ return function(Tab, Window, WindUI)
     --      Persistent Event Listeners
     -- ================================= --
 
-    -- Mouse wheel for zoom
     UserInputService.InputChanged:Connect(function(input)
         if isCameraMode and input.UserInputType == Enum.UserInputType.MouseWheel then
             zoomDistance = math.clamp(zoomDistance - input.Position.Z * 2, minZoom, maxZoom)
         end
     end)
 
-    -- NEW: Persistent RenderStepped loop for camera control
     RunService.RenderStepped:Connect(function()
         if isCameraMode and cameraTarget and cameraTarget.Character and cameraTarget.Character:FindFirstChild("Head") then
-            -- Aggressively force camera mode every frame
             Camera.CameraType = Enum.CameraType.Scriptable
             if Camera.CameraType ~= Enum.CameraType.Scriptable then
                 Camera.CameraType = Enum.CameraType.Scriptable
             end
             UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 
-            -- Camera movement logic
             local targetPos = cameraTarget.Character.Head.Position
             if isWPressed then pitch = math.clamp(pitch - cameraSpeed, -math.pi / 3, math.pi / 3) end
             if isSPressed then pitch = math.clamp(pitch + cameraSpeed, -math.pi / 3, math.pi / 3) end
@@ -151,7 +144,6 @@ return function(Tab, Window, WindUI)
             targetLostDebounce = false
 
         elseif isCameraMode and not targetLostDebounce then
-            -- Target lost logic
             targetLostDebounce = true
             statusParagraph:SetDesc("เป้าหมาย: หายไป (รอ 3 วินาที)")
             task.wait(3)
@@ -182,7 +174,7 @@ return function(Tab, Window, WindUI)
             else
                 statusParagraph:SetDesc("เป้าหมาย: ไม่พบผู้เล่น")
             end
-            playerDropdown:Close() -- Close the dropdown after selection
+            playerDropdown:Close()
         end
     })
 
@@ -214,7 +206,9 @@ return function(Tab, Window, WindUI)
             if isCameraMode then
                 restoreCamera()
             elseif selectedPlayer then
-                moveCameraToPlayer(selectedPlayer)
+                if moveCameraToPlayer(selectedPlayer) then
+                    Window:Close()
+                end
             else
                 WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกเป้าหมายก่อน", Icon = "x" })
             end
@@ -227,6 +221,7 @@ return function(Tab, Window, WindUI)
         Callback = function()
             if selectedPlayer then
                 teleportToPlayer(selectedPlayer)
+                Window:Close()
             else
                 WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกเป้าหมายก่อน", Icon = "x" })
             end
@@ -235,4 +230,7 @@ return function(Tab, Window, WindUI)
 
     -- Initial population of the player list
     refreshPlayerList()
+
+    -- NEW: Cancel spy mode when the window is closed
+    Window:OnClose(restoreCamera)
 end
