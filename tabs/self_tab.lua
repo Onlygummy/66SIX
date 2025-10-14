@@ -8,13 +8,16 @@ return function(Tab, Window, WindUI)
     local UserInputService = game:GetService("UserInputService")
     local RunService = game:GetService("RunService")
 
-    -- ================================= --
-    --      Fly + Noclip Logic (now God Mode)
-    -- ================================= --
-    local flySpeed = 50
+    -- Fly and Noclip Variables
+    local flySpeed = 50 -- ความเร็วคงที่
     local flying = false
     local noclip = false
     local bodyVelocity, bodyGyro
+    local isFly = false -- To handle respawn
+
+    -- ================================= --
+    --      Fly + Noclip Logic
+    -- ================================= --
 
     local function setupFlyMovers()
         if not bodyVelocity then
@@ -42,7 +45,8 @@ return function(Tab, Window, WindUI)
         if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
         if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then moveDir = moveDir - Vector3.new(0, 1, 0) end
         
-        bodyVelocity.Velocity = moveDir.Unit * flySpeed
+        -- Use the exact logic from the reference script
+        bodyVelocity.Velocity = moveDir * flySpeed
         bodyGyro.CFrame = camera.CFrame
     end
 
@@ -56,6 +60,30 @@ return function(Tab, Window, WindUI)
         end
     end
 
+    local function setFly(value)
+        isFly = value
+        flying = value
+        noclip = value -- Sync noclip with flying
+        local char = LocalPlayer.Character
+        if not char then return end
+        local rootPart = char:FindFirstChild("HumanoidRootPart")
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if not rootPart or not humanoid then return end
+
+        if flying then
+            setupFlyMovers()
+            bodyVelocity.Parent = rootPart
+            bodyGyro.Parent = rootPart
+            humanoid.PlatformStand = true
+            WindUI:Notify({ Title = "สถานะ", Content = "เปิดใช้งาน Fly / Noclip", Icon = "feather" })
+        else
+            if bodyVelocity then bodyVelocity.Parent = nil end
+            if bodyGyro then bodyGyro.Parent = nil end
+            humanoid.PlatformStand = false
+            WindUI:Notify({ Title = "สถานะ", Content = "ปิดใช้งาน Fly / Noclip", Icon = "feather" })
+        end
+    end
+
     -- Connect persistent listeners
     RunService.RenderStepped:Connect(updateMovement)
     RunService.Stepped:Connect(updateNoclip)
@@ -64,49 +92,23 @@ return function(Tab, Window, WindUI)
     --      WindUI Element Creation
     -- ================================= --
 
-    -- God Mode (Fly/Noclip) Section
-    local GodModeSection = Tab:Section({ Title = "God Mode", Icon = "feather", Opened = true })
-    GodModeSection:Toggle({
-        Title = "God Mode",
-        Desc = "เปิด/ปิดการบินและเดินทะลุ",
+    local FlySection = Tab:Section({ Title = "Fly / Noclip", Icon = "feather", Opened = true })
+    
+    FlySection:Toggle({
+        Title = "Fly / Noclip",
+        Desc = "เปิด/ปิดการบินและเดินทะลุ (ความเร็วคงที่)",
         Value = false,
         Callback = function(value)
-            flying = value
-            noclip = value
-            local char = LocalPlayer.Character
-            if not char then return end
-            local rootPart = char:FindFirstChild("HumanoidRootPart")
-            local humanoid = char:FindFirstChildOfClass("Humanoid")
-            if not rootPart or not humanoid then return end
-
-            if flying then
-                setupFlyMovers()
-                bodyVelocity.Parent = rootPart
-                bodyGyro.Parent = rootPart
-                humanoid.PlatformStand = true
-                WindUI:Notify({ Title = "สถานะ", Content = "เปิดใช้งาน God Mode", Icon = "feather" })
-            else
-                if bodyVelocity then bodyVelocity.Parent = nil end
-                if bodyGyro then bodyGyro.Parent = nil end
-                humanoid.PlatformStand = false
-                WindUI:Notify({ Title = "สถานะ", Content = "ปิดใช้งาน God Mode", Icon = "feather" })
-            end
-        end
-    })
-
-    GodModeSection:Slider({
-        Title = "ความเร็ว",
-        Desc = "ปรับความเร็วในการบิน",
-        Value = { Default = 20, Min = 10, Max = 20 },
-        Step = 1,
-        Callback = function(value)
-            flySpeed = value
+            setFly(value)
         end
     })
 
     -- Handle character respawn
     LocalPlayer.CharacterAdded:Connect(function(character)
         task.wait(1)
-        -- Note: Fly mode will be disabled on respawn, which is standard behavior.
+        -- Fly mode will be disabled on respawn, which is standard behavior.
+        if isFly then
+            setFly(false)
+        end
     end)
 end
