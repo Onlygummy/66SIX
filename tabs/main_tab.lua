@@ -56,6 +56,18 @@ return function(Tab, Window, WindUI)
         end
     end
 
+    -- Function to toggle PlayerScripts for camera control
+    local function setPlayerScriptsEnabled(enabled)
+        local playerScripts = LocalPlayer:FindFirstChild("PlayerScripts")
+        if playerScripts then
+            local playerModule = playerScripts:FindFirstChild("PlayerModule")
+            if playerModule then
+                -- Disabling the whole module is more robust
+                playerModule.Disabled = not enabled
+            end
+        end
+    end
+
     restoreCamera = function()
         if not isCameraMode then return end
 
@@ -80,14 +92,11 @@ return function(Tab, Window, WindUI)
         ContextActionService:UnbindAction("SpyCameraControlS")
         ContextActionService:UnbindAction("SpyCameraControlD")
 
+        setPlayerScriptsEnabled(true) -- Re-enable player controls
+
         if spyButton then spyButton:SetTitle("ส่อง (SPY)") end
         statusParagraph:SetDesc("เป้าหมาย: " .. (selectedPlayer and selectedPlayer.Name or "ยังไม่ได้เลือก"))
-
-        local playerScripts = LocalPlayer:FindFirstChild("PlayerScripts")
-        if playerScripts then
-            local control = playerScripts:FindFirstChild("PlayerModule"):FindFirstChild("ControlModule")
-            if control then require(control):Enable() end
-        end
+        WindUI:Notify({ Title = "สถานะ", Content = "ออกจากโหมดส่องแล้ว", Icon = "camera-off" })
     end
 
     local function moveCameraToPlayer(targetPlayer)
@@ -117,17 +126,14 @@ return function(Tab, Window, WindUI)
         createKeybind("SpyCameraControlS", Enum.KeyCode.S)
         createKeybind("SpyCameraControlD", Enum.KeyCode.D)
 
-        local playerScripts = LocalPlayer:FindFirstChild("PlayerScripts")
-        if playerScripts then
-            local control = playerScripts:FindFirstChild("PlayerModule"):FindFirstChild("ControlModule")
-            if control then require(control):Disable() end
-        end
+        setPlayerScriptsEnabled(false) -- Disable player controls
 
         if not renderSteppedConnection then
             renderSteppedConnection = RunService.RenderStepped:Connect(updateCamera)
         end
         
         spyButton:SetTitle("หยุดส่อง (STOP)")
+        WindUI:Notify({ Title = "สถานะ", Content = "เข้าสู่โหมดส่อง! ใช้ WASD ควบคุม", Icon = "camera" })
         return true
     end
 
@@ -169,17 +175,21 @@ return function(Tab, Window, WindUI)
         end
     })
 
+    local function refreshPlayerList()
+        local playerNames = {}
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                table.insert(playerNames, player.Name)
+            end
+        end
+        playerDropdown:Refresh(playerNames)
+    end
+
     Tab:Button({
         Title = "รีเฟรชรายชื่อผู้เล่น",
         Icon = "refresh-cw",
         Callback = function()
-            local playerNames = {}
-            for _, player in pairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer then
-                    table.insert(playerNames, player.Name)
-                end
-            end
-            playerDropdown:Refresh(playerNames) 
+            refreshPlayerList()
             WindUI:Notify({ Title = "สำเร็จ", Content = "รีเฟรชรายชื่อผู้เล่นแล้ว", Icon = "check" })
         end
     })
@@ -211,4 +221,7 @@ return function(Tab, Window, WindUI)
             end
         end
     })
+
+    -- Initial population of the player list
+    refreshPlayerList()
 end

@@ -54,3 +54,6 @@ local SettingsTab = Window:Tab({
 -- โดยส่งอ็อบเจกต์ของ Tab, Window, และ WindUI เข้าไปให้ Module ใช้งาน
 MainTabModule(MainTab, Window, WindUI)
 SettingsTabModule(SettingsTab, Window, WindUI)
+
+-- เลือกให้แท็บ "หน้าหลัก" แสดงผลเป็นค่าเริ่มต้น
+MainTab:Select()
