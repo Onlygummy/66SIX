@@ -181,6 +181,7 @@ return function(Tab, Window, WindUI)
             else
                 statusParagraph:SetDesc("เป้าหมาย: ไม่พบผู้เล่น")
             end
+            playerDropdown:Close() -- Close the dropdown after selection
         end
     })
 
