@@ -70,6 +70,9 @@ return function(Tab, Window, WindUI)
         -- Restore Camera
         if originalCameraCFrame then Camera.CFrame = originalCameraCFrame end
         Camera.CameraType = Enum.CameraType.Custom
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+            Camera.CameraSubject = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        end
         ContextActionService:UnbindAction("SpyCameraControlW")
         ContextActionService:UnbindAction("SpyCameraControlA")
         ContextActionService:UnbindAction("SpyCameraControlS")
