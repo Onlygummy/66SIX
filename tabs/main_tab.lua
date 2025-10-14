@@ -62,7 +62,6 @@ return function(Tab, Window, WindUI)
         if playerScripts then
             local playerModule = playerScripts:FindFirstChild("PlayerModule")
             if playerModule then
-                -- Disabling the whole module is more robust
                 playerModule.Disabled = not enabled
             end
         end
@@ -92,7 +91,12 @@ return function(Tab, Window, WindUI)
         ContextActionService:UnbindAction("SpyCameraControlS")
         ContextActionService:UnbindAction("SpyCameraControlD")
 
-        setPlayerScriptsEnabled(true) -- Re-enable player controls
+        -- Restore character movement and controls
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            LocalPlayer.Character.Humanoid.WalkSpeed = 16
+            LocalPlayer.Character.Humanoid.JumpPower = 50
+        end
+        setPlayerScriptsEnabled(true)
 
         if spyButton then spyButton:SetTitle("ส่อง (SPY)") end
         statusParagraph:SetDesc("เป้าหมาย: " .. (selectedPlayer and selectedPlayer.Name or "ยังไม่ได้เลือก"))
@@ -126,7 +130,12 @@ return function(Tab, Window, WindUI)
         createKeybind("SpyCameraControlS", Enum.KeyCode.S)
         createKeybind("SpyCameraControlD", Enum.KeyCode.D)
 
-        setPlayerScriptsEnabled(false) -- Disable player controls
+        -- Disable player controls and freeze character
+        setPlayerScriptsEnabled(false)
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            LocalPlayer.Character.Humanoid.WalkSpeed = 0
+            LocalPlayer.Character.Humanoid.JumpPower = 0
+        end
 
         if not renderSteppedConnection then
             renderSteppedConnection = RunService.RenderStepped:Connect(updateCamera)
