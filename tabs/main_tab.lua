@@ -136,6 +136,10 @@ return function(Tab, Window, WindUI)
         createKeybind("SpyCameraControlD", Enum.KeyCode.D)
 
         setPlayerScriptsEnabled(false)
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            LocalPlayer.Character.Humanoid.WalkSpeed = 0
+            LocalPlayer.Character.Humanoid.JumpPower = 0
+        end
         
         WindUI:Notify({ Title = "สถานะ", Content = "เข้าสู่โหมดส่อง! ใช้ WASD ควบคุมกล้อง", Icon = "camera" })
         return true
