@@ -174,6 +174,7 @@ return function(Tab, Window, WindUI)
         Title = "เลือกเป้าหมาย",
         Desc = "เลือกผู้เล่นที่จะส่องหรือเทเลพอร์ต",
         Values = {},
+        SearchBarEnabled = true,
         Callback = function(playerName)
             selectedPlayer = Players:FindFirstChild(playerName)
             if selectedPlayer then
