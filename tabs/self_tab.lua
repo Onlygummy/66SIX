@@ -9,44 +9,7 @@ return function(Tab, Window, WindUI)
     local RunService = game:GetService("RunService")
 
     -- ================================= --
-    --        God Mode Logic
-    -- ================================= --
-    local godModeConnection = nil
-    local originalMaxHealth = 100
-    local godModeToggle = nil
-
-    local function applyGodMode(character)
-        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-        if not humanoid then return end
-        if godModeConnection then godModeConnection:Disconnect() end
-
-        originalMaxHealth = humanoid.MaxHealth
-        humanoid.MaxHealth = math.huge
-        humanoid.Health = math.huge
-
-        godModeConnection = humanoid:GetPropertyChangedSignal("Health"):Connect(function()
-            humanoid.Health = math.huge
-        end)
-    end
-
-    local function disableGodMode()
-        if godModeConnection then
-            godModeConnection:Disconnect()
-            godModeConnection = nil
-        end
-        local char = LocalPlayer.Character
-        if not char then return end
-        local humanoid = char:FindFirstChildOfClass("Humanoid")
-        if not humanoid then return end
-
-        if humanoid.MaxHealth == math.huge then
-            humanoid.MaxHealth = originalMaxHealth
-            humanoid.Health = originalMaxHealth
-        end
-    end
-
-    -- ================================= --
-    --      Fly + Noclip Logic
+    --      Fly + Noclip Logic (now God Mode)
     -- ================================= --
     local flySpeed = 50
     local flying = false
@@ -101,27 +64,10 @@ return function(Tab, Window, WindUI)
     --      WindUI Element Creation
     -- ================================= --
 
-    -- God Mode Section
-    local GodModeSection = Tab:Section({ Title = "โหมดอมตะ", Icon = "shield", Opened = true })
-    godModeToggle = GodModeSection:Toggle({
+    -- God Mode (Fly/Noclip) Section
+    local GodModeSection = Tab:Section({ Title = "God Mode", Icon = "feather", Opened = true })
+    GodModeSection:Toggle({
         Title = "God Mode",
-        Desc = "ป้องกันตัวละครของคุณจากการรับความเสียหาย",
-        Value = false,
-        Callback = function(value)
-            if value then
-                if LocalPlayer.Character then applyGodMode(LocalPlayer.Character) end
-                WindUI:Notify({ Title = "สถานะ", Content = "เปิดใช้งาน God Mode", Icon = "shield" })
-            else
-                disableGodMode()
-                WindUI:Notify({ Title = "สถานะ", Content = "ปิดใช้งาน God Mode", Icon = "shield-off" })
-            end
-        end
-    })
-
-    -- Fly/Noclip Section
-    local FlySection = Tab:Section({ Title = "โหมดบิน", Icon = "feather", Opened = true })
-    FlySection:Toggle({
-        Title = "Fly + Noclip",
         Desc = "เปิด/ปิดการบินและเดินทะลุ",
         Value = false,
         Callback = function(value)
@@ -138,18 +84,18 @@ return function(Tab, Window, WindUI)
                 bodyVelocity.Parent = rootPart
                 bodyGyro.Parent = rootPart
                 humanoid.PlatformStand = true
-                WindUI:Notify({ Title = "สถานะ", Content = "เปิดใช้งาน Fly + Noclip", Icon = "feather" })
+                WindUI:Notify({ Title = "สถานะ", Content = "เปิดใช้งาน God Mode", Icon = "feather" })
             else
                 if bodyVelocity then bodyVelocity.Parent = nil end
                 if bodyGyro then bodyGyro.Parent = nil end
                 humanoid.PlatformStand = false
-                WindUI:Notify({ Title = "สถานะ", Content = "ปิดใช้งาน Fly + Noclip", Icon = "feather" })
+                WindUI:Notify({ Title = "สถานะ", Content = "ปิดใช้งาน God Mode", Icon = "feather" })
             end
         end
     })
 
-    FlySection:Slider({
-        Title = "ความเร็วในการบิน",
+    GodModeSection:Slider({
+        Title = "ความเร็ว",
         Desc = "ปรับความเร็วในการบิน",
         Value = { Default = 100, Min = 10, Max = 1000 },
         Step = 10,
@@ -161,9 +107,6 @@ return function(Tab, Window, WindUI)
     -- Handle character respawn
     LocalPlayer.CharacterAdded:Connect(function(character)
         task.wait(1)
-        if godModeToggle and godModeToggle.Value then
-            applyGodMode(character)
-        end
         -- Note: Fly mode will be disabled on respawn, which is standard behavior.
     end)
 end
