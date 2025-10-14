@@ -23,8 +23,6 @@ local baseURL = string.format("https://raw.githubusercontent.com/%s/%s/%s/", GIT
 local WindUI_URL = baseURL .. "windui.lua?v=" .. cacheBuster
 local MainTab_URL = baseURL .. "tabs/main_tab.lua?v=" .. cacheBuster
 local SettingsTab_URL = baseURL .. "tabs/settings_tab.lua?v=" .. cacheBuster
-local SelfTab_URL = baseURL .. "tabs/self_tab.lua?v=" .. cacheBuster
-
 
 -- =================================================================== --
 --      หมายเหตุ: หาก Executor ของคุณรองรับ readfile() หรือ loadfile()
@@ -36,13 +34,10 @@ local SelfTab_URL = baseURL .. "tabs/self_tab.lua?v=" .. cacheBuster
 -- local SelfTabModule = loadstring(readfile("D:/Script/tabs/self_tab.lua"))()
 -- =================================================================== --
 
-
--- โหลดไลบรารีและโมดูลจาก URL
+-- โหลดไลบรารีและโมดูลหลัก
 local WindUI = loadstring(game:HttpGet(WindUI_URL))()
 local MainTabModule = loadstring(game:HttpGet(MainTab_URL))()
 local SettingsTabModule = loadstring(game:HttpGet(SettingsTab_URL))()
-local SelfTabModule = loadstring(game:HttpGet(SelfTab_URL))()
-
 
 -- สร้างหน้าต่างหลัก (Window)
 local Window = WindUI:CreateWindow({
@@ -55,15 +50,10 @@ local Window = WindUI:CreateWindow({
     }
 })
 
--- สร้างแท็บ
+-- สร้างแท็บหลัก
 local MainTab = Window:Tab({
     Title = "หน้าหลัก",
     Icon = "layout-dashboard"
-})
-
-local SelfTab = Window:Tab({
-    Title = "ส่วนตัว",
-    Icon = "user"
 })
 
 local SettingsTab = Window:Tab({
@@ -71,10 +61,30 @@ local SettingsTab = Window:Tab({
     Icon = "settings"
 })
 
--- เรียกใช้ Module เพื่อสร้าง UI ในแต่ละแท็บ
--- โดยส่งอ็อบเจกต์ของ Tab, Window, และ WindUI เข้าไปให้ Module ใช้งาน
+-- =================================================================== --
+--      Whitelist สำหรับ Self Tab
+-- =================================================================== --
+local ALLOWED_PLACE_IDS = {
+    77837537595343, -- ID ที่คุณให้มา
+    -- สามารถเพิ่ม ID อื่นๆ คั่นด้วยลูกน้ำได้ที่นี่
+}
+
+if table.find(ALLOWED_PLACE_IDS, game.PlaceId) then
+    -- โหลดและสร้าง Self Tab เฉพาะเมื่อ PlaceId ตรงกัน
+    local SelfTab_URL = baseURL .. "tabs/self_tab.lua?v=" .. cacheBuster
+    local SelfTabModule = loadstring(game:HttpGet(SelfTab_URL))()
+
+    local SelfTab = Window:Tab({
+        Title = "ส่วนตัว",
+        Icon = "user"
+    })
+
+    SelfTabModule(SelfTab, Window, WindUI)
+end
+-- =================================================================== --
+
+-- เรียกใช้ Module เพื่อสร้าง UI ในแท็บหลัก
 MainTabModule(MainTab, Window, WindUI)
-SelfTabModule(SelfTab, Window, WindUI)
 SettingsTabModule(SettingsTab, Window, WindUI)
 
 -- เลือกให้แท็บ "หน้าหลัก" แสดงผลเป็นค่าเริ่มต้น
