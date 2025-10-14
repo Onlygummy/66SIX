@@ -62,24 +62,37 @@ local SettingsTab = Window:Tab({
 })
 
 -- =================================================================== --
---      Whitelist สำหรับ Self Tab
+--      แท็บเฉพาะแมพ (Map-Specific Tabs)
 -- =================================================================== --
-local ALLOWED_PLACE_IDS = {
-    77837537595343, -- ID ที่คุณให้มา
-    -- สามารถเพิ่ม ID อื่นๆ คั่นด้วยลูกน้ำได้ที่นี่
+local MAP_SPECIFIC_TABS = {
+    [77837537595343] = {
+        Title = "BannaTown",
+        Icon = "map-pin",
+        Module = "tabs/self_tab.lua"
+    },
+    --[[ ตัวอย่างการเพิ่มแมพอื่น
+    [123456789] = {
+        Title = "Another Map",
+        Icon = "swords",
+        Module = "tabs/another_map_tab.lua"
+    }
+    --]]
 }
 
-if table.find(ALLOWED_PLACE_IDS, game.PlaceId) then
-    -- โหลดและสร้าง Self Tab เฉพาะเมื่อ PlaceId ตรงกัน
-    local SelfTab_URL = baseURL .. "tabs/self_tab.lua?v=" .. cacheBuster
-    local SelfTabModule = loadstring(game:HttpGet(SelfTab_URL))()
+local currentPlaceId = game.PlaceId
+local mapConfig = MAP_SPECIFIC_TABS[currentPlaceId]
 
-    local SelfTab = Window:Tab({
-        Title = "ส่วนตัว",
-        Icon = "user"
+if mapConfig then
+    -- โหลดและสร้างแท็บเฉพาะแมพเมื่อ PlaceId ตรงกัน
+    local MapTab_URL = baseURL .. mapConfig.Module .. "?v=" .. cacheBuster
+    local MapTabModule = loadstring(game:HttpGet(MapTab_URL))()
+
+    local MapTab = Window:Tab({
+        Title = mapConfig.Title,
+        Icon = mapConfig.Icon
     })
 
-    SelfTabModule(SelfTab, Window, WindUI)
+    MapTabModule(MapTab, Window, WindUI)
 end
 -- =================================================================== --
 
