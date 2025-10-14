@@ -105,7 +105,7 @@ return function(Tab, Window, WindUI)
             LocalPlayer.Character.Humanoid.JumpPower = 0
         end
         
-        spyButton:SetTitle("หยุดส่อง (STOP)")
+        spyButton:SetTitle("ยกเลิกส่อง (SPY)")
         WindUI:Notify({ Title = "สถานะ", Content = "เข้าสู่โหมดส่อง! ใช้ WASD ควบคุม", Icon = "camera" })
         return true
     end
