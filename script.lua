@@ -23,6 +23,7 @@ local baseURL = string.format("https://raw.githubusercontent.com/%s/%s/%s/", GIT
 local WindUI_URL = baseURL .. "windui.lua?v=" .. cacheBuster
 local MainTab_URL = baseURL .. "tabs/main_tab.lua?v=" .. cacheBuster
 local SettingsTab_URL = baseURL .. "tabs/settings_tab.lua?v=" .. cacheBuster
+local SelfTab_URL = baseURL .. "tabs/self_tab.lua?v=" .. cacheBuster
 
 
 -- =================================================================== --
@@ -32,6 +33,7 @@ local SettingsTab_URL = baseURL .. "tabs/settings_tab.lua?v=" .. cacheBuster
 -- local WindUI = loadstring(readfile("D:/Script/windui.lua"))()
 -- local MainTabModule = loadstring(readfile("D:/Script/tabs/main_tab.lua"))()
 -- local SettingsTabModule = loadstring(readfile("D:/Script/tabs/settings_tab.lua"))()
+-- local SelfTabModule = loadstring(readfile("D:/Script/tabs/self_tab.lua"))()
 -- =================================================================== --
 
 
@@ -39,6 +41,7 @@ local SettingsTab_URL = baseURL .. "tabs/settings_tab.lua?v=" .. cacheBuster
 local WindUI = loadstring(game:HttpGet(WindUI_URL))()
 local MainTabModule = loadstring(game:HttpGet(MainTab_URL))()
 local SettingsTabModule = loadstring(game:HttpGet(SettingsTab_URL))()
+local SelfTabModule = loadstring(game:HttpGet(SelfTab_URL))()
 
 
 -- สร้างหน้าต่างหลัก (Window)
@@ -58,6 +61,11 @@ local MainTab = Window:Tab({
     Icon = "layout-dashboard"
 })
 
+local SelfTab = Window:Tab({
+    Title = "ส่วนตัว",
+    Icon = "user"
+})
+
 local SettingsTab = Window:Tab({
     Title = "ตั้งค่า",
     Icon = "settings"
@@ -66,6 +74,7 @@ local SettingsTab = Window:Tab({
 -- เรียกใช้ Module เพื่อสร้าง UI ในแต่ละแท็บ
 -- โดยส่งอ็อบเจกต์ของ Tab, Window, และ WindUI เข้าไปให้ Module ใช้งาน
 MainTabModule(MainTab, Window, WindUI)
+SelfTabModule(SelfTab, Window, WindUI)
 SettingsTabModule(SettingsTab, Window, WindUI)
 
 -- เลือกให้แท็บ "หน้าหลัก" แสดงผลเป็นค่าเริ่มต้น
