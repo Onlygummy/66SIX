@@ -3,7 +3,7 @@
 
 return function(Tab, Window, WindUI)
     Tab:Dropdown({
-        Title = "เปลี่ยนธีม (Theme)",
+        Title = "เปลี่ยนธีม",
         Desc = "เลือกธีมของหน้าต่าง UI",
         Values = {"Dark", "Light", "Midnight", "Rose", "Crimson", "Plant", "MonokaiPro"}, -- รายชื่อธีม
         Value = "Midnight", -- ธีมเริ่มต้น
@@ -23,8 +23,8 @@ return function(Tab, Window, WindUI)
     })
 
     Tab:Button({
-        Title = "ทำลายหน้าต่าง (Destroy)",
-        Desc = "กดเพื่อปิดและทำลาย UI ทั้งหมด",
+        Title = "ปิดโปรแกรม",
+        Desc = "กดเพื่อปิดโปรแกรมทั้งหมด",
         Icon = "trash-2",
         Callback = function()
             Window:Destroy()

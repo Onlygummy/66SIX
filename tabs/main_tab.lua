@@ -66,7 +66,7 @@ return function(Tab, Window, WindUI)
         setPlayerScriptsEnabled(true)
 
         if spyButton then spyButton.ButtonFrame:SetTitle("ส่อง (SPY)") end
-        statusParagraph:SetDesc("เป้าหมาย: " .. (selectedPlayer and selectedPlayer.Name or "ยังไม่ได้เลือก"))
+        if statusParagraph then statusParagraph:SetDesc("เป้าหมาย: " .. (selectedPlayer and selectedPlayer.Name or "ยังไม่ได้เลือก")) end
         WindUI:Notify({ Title = "สถานะ", Content = "ออกจากโหมดส่องแล้ว", Icon = "camera-off" })
     end
 
@@ -102,7 +102,7 @@ return function(Tab, Window, WindUI)
             LocalPlayer.Character.Humanoid.JumpPower = 0
         end
         
-        spyButton.ButtonFrame:SetTitle("หยุดส่อง (STOP)")
+        spyButton.ButtonFrame:SetTitle("หยุดส่อง")
         WindUI:Notify({ Title = "สถานะ", Content = "เข้าสู่โหมดส่อง! ใช้ WASD ควบคุม", Icon = "camera" })
         return true
     end
@@ -145,7 +145,7 @@ return function(Tab, Window, WindUI)
 
         elseif isCameraMode and not targetLostDebounce then
             targetLostDebounce = true
-            statusParagraph:SetDesc("เป้าหมาย: หายไป (รอ 3 วินาที)")
+            if statusParagraph then statusParagraph:SetDesc("เป้าหมาย: หายไป (รอ 3 วินาที)") end
             task.wait(3)
             if isCameraMode and (not cameraTarget or not cameraTarget.Character or not cameraTarget.Character:FindFirstChild("Head")) then
                 restoreCamera()
@@ -157,12 +157,19 @@ return function(Tab, Window, WindUI)
     --      WindUI Element Creation
     -- ================================= --
 
-    statusParagraph = Tab:Paragraph({
+    -- Section 1: Target Selection
+    local TargetSection = Tab:Section({
+        Title = "การเลือกเป้าหมาย",
+        Icon = "crosshair",
+        Opened = true
+    })
+
+    statusParagraph = TargetSection:Paragraph({
         Title = "สถานะ",
         Desc = "เป้าหมาย: ยังไม่ได้เลือก"
     })
 
-    playerDropdown = Tab:Dropdown({
+    playerDropdown = TargetSection:Dropdown({
         Title = "เลือกเป้าหมาย",
         Desc = "เลือกผู้เล่นที่จะส่องหรือเทเลพอร์ต",
         Values = {},
@@ -188,7 +195,7 @@ return function(Tab, Window, WindUI)
         playerDropdown:Refresh(playerNames)
     end
 
-    Tab:Button({
+    TargetSection:Button({
         Title = "รีเฟรชรายชื่อผู้เล่น",
         Icon = "refresh-cw",
         Callback = function()
@@ -197,10 +204,15 @@ return function(Tab, Window, WindUI)
         end
     })
 
-    Tab:Divider()
+    -- Section 2: Actions
+    local ActionSection = Tab:Section({
+        Title = "คำสั่ง",
+        Icon = "zap",
+        Opened = true
+    })
 
-    spyButton = Tab:Button({
-        Title = "ส่อง (SPY)",
+    spyButton = ActionSection:Button({
+        Title = "ส่อง",
         Icon = "camera",
         Callback = function()
             if isCameraMode then
@@ -213,8 +225,8 @@ return function(Tab, Window, WindUI)
         end
     })
 
-    Tab:Button({
-        Title = "เทเลพอร์ต (WARP)",
+    ActionSection:Button({
+        Title = "เทเลพอร์ต",
         Icon = "send",
         Callback = function()
             if selectedPlayer then
