@@ -206,9 +206,7 @@ return function(Tab, Window, WindUI)
             if isCameraMode then
                 restoreCamera()
             elseif selectedPlayer then
-                if moveCameraToPlayer(selectedPlayer) then
-                    Window:Close()
-                end
+                moveCameraToPlayer(selectedPlayer)
             else
                 WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกเป้าหมายก่อน", Icon = "x" })
             end
@@ -221,7 +219,6 @@ return function(Tab, Window, WindUI)
         Callback = function()
             if selectedPlayer then
                 teleportToPlayer(selectedPlayer)
-                Window:Close()
             else
                 WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกเป้าหมายก่อน", Icon = "x" })
             end
@@ -230,7 +227,4 @@ return function(Tab, Window, WindUI)
 
     -- Initial population of the player list
     refreshPlayerList()
-
-    -- NEW: Cancel spy mode when the window is closed
-    Window:OnClose(restoreCamera)
 end
