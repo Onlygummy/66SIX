@@ -97,8 +97,8 @@ return function(Tab, Window, WindUI)
     GodModeSection:Slider({
         Title = "ความเร็ว",
         Desc = "ปรับความเร็วในการบิน",
-        Value = { Default = 100, Min = 10, Max = 1000 },
-        Step = 10,
+        Value = { Default = 20, Min = 10, Max = 20 },
+        Step = 1,
         Callback = function(value)
             flySpeed = value
         end
