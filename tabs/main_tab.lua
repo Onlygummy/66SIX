@@ -19,7 +19,6 @@ return function(Tab, Window, WindUI)
     local minZoom, maxZoom = 5, 20
     local cameraSpeed = 0.03
     local isWPressed, isAPressed, isSPressed, isDPressed = false, false, false, false
-    local renderSteppedConnection = nil
     local targetLostDebounce = false
 
     -- Forward-declare UI elements and functions
@@ -29,40 +28,17 @@ return function(Tab, Window, WindUI)
     local restoreCamera
 
     -- ================================= --
-    --  Core Logic from Teleport Script
+    --  Core Logic
     -- ================================= --
 
-    local function updateCamera()
-        if isCameraMode and cameraTarget and cameraTarget.Character and cameraTarget.Character:FindFirstChild("Head") then
-            Camera.CameraType = Enum.CameraType.Scriptable
-            UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-            
-            local targetPos = cameraTarget.Character.Head.Position
-            if isWPressed then pitch = math.clamp(pitch - cameraSpeed, -math.pi / 3, math.pi / 3) end
-            if isSPressed then pitch = math.clamp(pitch + cameraSpeed, -math.pi / 3, math.pi / 3) end
-            if isAPressed then yaw = yaw + cameraSpeed end
-            if isDPressed then yaw = yaw - cameraSpeed end
-
-            local cameraPos = targetPos + CFrame.Angles(0, yaw, 0) * CFrame.Angles(pitch, 0, 0) * Vector3.new(0, 5, zoomDistance)
-            Camera.CFrame = CFrame.new(cameraPos, targetPos)
-            targetLostDebounce = false
-        elseif isCameraMode and not targetLostDebounce then
-            targetLostDebounce = true
-            statusParagraph:SetDesc("เป้าหมาย: หายไป (รอ 3 วินาที)")
-            task.wait(3)
-            if isCameraMode and (not cameraTarget or not cameraTarget.Character or not cameraTarget.Character:FindFirstChild("Head")) then
-                restoreCamera()
-            end
-        end
-    end
-
-    -- Function to toggle PlayerScripts for camera control
+    -- NEW: More robust function to disable/enable player control scripts
     local function setPlayerScriptsEnabled(enabled)
         local playerScripts = LocalPlayer:FindFirstChild("PlayerScripts")
         if playerScripts then
-            local playerModule = playerScripts:FindFirstChild("PlayerModule")
-            if playerModule then
-                playerModule.Disabled = not enabled
+            for _, script in pairs(playerScripts:GetChildren()) do
+                if script.Name == "PlayerModule" or script.Name == "ControlModule" then
+                    script.Disabled = not enabled
+                end
             end
         end
     end
@@ -70,14 +46,7 @@ return function(Tab, Window, WindUI)
     restoreCamera = function()
         if not isCameraMode then return end
 
-        if renderSteppedConnection then
-            renderSteppedConnection:Disconnect()
-            renderSteppedConnection = nil
-        end
-
-        if originalCameraCFrame then
-            Camera.CFrame = originalCameraCFrame
-        end
+        if originalCameraCFrame then Camera.CFrame = originalCameraCFrame end
         
         Camera.CameraType = Enum.CameraType.Custom
         isCameraMode = false
@@ -112,7 +81,6 @@ return function(Tab, Window, WindUI)
         isCameraMode = true
         originalCameraCFrame = Camera.CFrame
         cameraTarget = targetPlayer
-        Camera.CameraType = Enum.CameraType.Scriptable
         yaw, pitch, zoomDistance = 0, 0, 10
 
         local function createKeybind(name, key) 
@@ -136,10 +104,6 @@ return function(Tab, Window, WindUI)
             LocalPlayer.Character.Humanoid.WalkSpeed = 0
             LocalPlayer.Character.Humanoid.JumpPower = 0
         end
-
-        if not renderSteppedConnection then
-            renderSteppedConnection = RunService.RenderStepped:Connect(updateCamera)
-        end
         
         spyButton:SetTitle("หยุดส่อง (STOP)")
         WindUI:Notify({ Title = "สถานะ", Content = "เข้าสู่โหมดส่อง! ใช้ WASD ควบคุม", Icon = "camera" })
@@ -154,10 +118,46 @@ return function(Tab, Window, WindUI)
         WindUI:Notify({ Title = "สำเร็จ", Content = "เทเลพอร์ตไปยัง " .. targetPlayer.Name, Icon = "check" })
     end
 
+    -- ================================= --
+    --      Persistent Event Listeners
+    -- ================================= --
+
     -- Mouse wheel for zoom
     UserInputService.InputChanged:Connect(function(input)
         if isCameraMode and input.UserInputType == Enum.UserInputType.MouseWheel then
             zoomDistance = math.clamp(zoomDistance - input.Position.Z * 2, minZoom, maxZoom)
+        end
+    end)
+
+    -- NEW: Persistent RenderStepped loop for camera control
+    RunService.RenderStepped:Connect(function()
+        if isCameraMode and cameraTarget and cameraTarget.Character and cameraTarget.Character:FindFirstChild("Head") then
+            -- Aggressively force camera mode every frame
+            Camera.CameraType = Enum.CameraType.Scriptable
+            if Camera.CameraType ~= Enum.CameraType.Scriptable then
+                Camera.CameraType = Enum.CameraType.Scriptable
+            end
+            UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+
+            -- Camera movement logic
+            local targetPos = cameraTarget.Character.Head.Position
+            if isWPressed then pitch = math.clamp(pitch - cameraSpeed, -math.pi / 3, math.pi / 3) end
+            if isSPressed then pitch = math.clamp(pitch + cameraSpeed, -math.pi / 3, math.pi / 3) end
+            if isAPressed then yaw = yaw + cameraSpeed end
+            if isDPressed then yaw = yaw - cameraSpeed end
+
+            local cameraPos = targetPos + CFrame.Angles(0, yaw, 0) * CFrame.Angles(pitch, 0, 0) * Vector3.new(0, 5, zoomDistance)
+            Camera.CFrame = CFrame.new(cameraPos, targetPos)
+            targetLostDebounce = false
+
+        elseif isCameraMode and not targetLostDebounce then
+            -- Target lost logic
+            targetLostDebounce = true
+            statusParagraph:SetDesc("เป้าหมาย: หายไป (รอ 3 วินาที)")
+            task.wait(3)
+            if isCameraMode and (not cameraTarget or not cameraTarget.Character or not cameraTarget.Character:FindFirstChild("Head")) then
+                restoreCamera()
+            end
         end
     end)
 
