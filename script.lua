@@ -8,11 +8,11 @@
 -- =================================================================== --
 
 -- URL สำหรับโหลดไลบรารี (จาก GitHub ของคุณ)
-local WindUI_URL = "https://raw.githubusercontent.com/USERNAME/REPO/main/windui.lua" -- !! แก้ไข USERNAME และ REPO !!
+local WindUI_URL = "https://raw.githubusercontent.com/Onlygummy/66SIX/main/windui.lua"
 
 -- URL สำหรับโหลดโมดูลของแต่ละแท็บ (จาก GitHub ของคุณ)
-local MainTab_URL = "https://raw.githubusercontent.com/USERNAME/REPO/main/tabs/main_tab.lua"       -- !! แก้ไข !!
-local SettingsTab_URL = "https://raw.githubusercontent.com/USERNAME/REPO/main/tabs/settings_tab.lua" -- !! แก้ไข !!
+local MainTab_URL = "https://raw.githubusercontent.com/Onlygummy/66SIX/main/tabs/main_tab.lua"
+local SettingsTab_URL = "https://raw.githubusercontent.com/Onlygummy/66SIX/main/tabs/settings_tab.lua"
 
 
 -- =================================================================== --
@@ -33,7 +33,7 @@ local SettingsTabModule = loadstring(game:HttpGet(SettingsTab_URL))()
 
 -- สร้างหน้าต่างหลัก (Window)
 local Window = WindUI:CreateWindow({
-    Title = "SIXREN",
+    Title = "66SIX",
     Size = UDim2.new(0, 580, 0, 460),
     Theme = "Midnight",
     ToggleKey = Enum.KeyCode.RightControl

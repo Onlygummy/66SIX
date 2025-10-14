@@ -1,3 +1,21 @@
+# 66SIX Project
+
+โปรเจกต์ 66SIX เป็นสคริปต์อเนกประสงค์สำหรับ Roblox ที่พัฒนาขึ้นโดยใช้ WindUI Library เพื่อมอบประสบการณ์การใช้งานที่สวยงามและทันสมัย
+
+## การติดตั้งและใช้งาน
+
+คัดลอกและรันสคริปต์ด้านล่างนี้ใน Executor ของคุณ:
+
+```lua
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Onlygummy/66SIX/main/script.lua"))()
+```
+
+---
+
+*เอกสารด้านล่างนี้เป็นสรุปการใช้งาน WindUI Library ที่ใช้ในโปรเจกต์นี้*
+
+---
+
 # WindUI Documentation (สรุปการใช้งาน)
 
 เอกสารนี้สรุปวิธีการใช้งาน `WindUI` สำหรับสร้าง GUI ในเกม Roblox
