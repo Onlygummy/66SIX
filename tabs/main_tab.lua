@@ -67,7 +67,7 @@ return function(Tab, Window, WindUI)
         end
         setPlayerScriptsEnabled(true)
 
-        if spyButton then spyButton:SetTitle("ส่อง (SPY)") end
+        if spyButton then spyButton.ButtonFrame:SetTitle("ส่อง (SPY)") end
         statusParagraph:SetDesc("เป้าหมาย: " .. (selectedPlayer and selectedPlayer.Name or "ยังไม่ได้เลือก"))
         WindUI:Notify({ Title = "สถานะ", Content = "ออกจากโหมดส่องแล้ว", Icon = "camera-off" })
     end
@@ -105,7 +105,7 @@ return function(Tab, Window, WindUI)
             LocalPlayer.Character.Humanoid.JumpPower = 0
         end
         
-        spyButton:SetTitle("ยกเลิกส่อง (SPY)")
+        spyButton.ButtonFrame:SetTitle("หยุดส่อง (STOP)")
         WindUI:Notify({ Title = "สถานะ", Content = "เข้าสู่โหมดส่อง! ใช้ WASD ควบคุม", Icon = "camera" })
         return true
     end
