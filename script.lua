@@ -7,12 +7,15 @@
 --      สำคัญ: แก้ไข URL ด้านล่างนี้เป็น URL ไฟล์ Raw จาก GitHub ของคุณ
 -- =================================================================== --
 
+-- ตัวแปรป้องกัน Cache ทำให้ Executor โหลดไฟล์ล่าสุดเสมอ
+local cacheBuster = os.time()
+
 -- URL สำหรับโหลดไลบรารี (จาก GitHub ของคุณ)
-local WindUI_URL = "https://raw.githubusercontent.com/Onlygummy/66SIX/main/windui.lua"
+local WindUI_URL = "https://raw.githubusercontent.com/Onlygummy/66SIX/main/windui.lua?v=" .. cacheBuster
 
 -- URL สำหรับโหลดโมดูลของแต่ละแท็บ (จาก GitHub ของคุณ)
-local MainTab_URL = "https://raw.githubusercontent.com/Onlygummy/66SIX/main/tabs/main_tab.lua"
-local SettingsTab_URL = "https://raw.githubusercontent.com/Onlygummy/66SIX/main/tabs/settings_tab.lua"
+local MainTab_URL = "https://raw.githubusercontent.com/Onlygummy/66SIX/main/tabs/main_tab.lua?v=" .. cacheBuster
+local SettingsTab_URL = "https://raw.githubusercontent.com/Onlygummy/66SIX/main/tabs/settings_tab.lua?v=" .. cacheBuster
 
 
 -- =================================================================== --
