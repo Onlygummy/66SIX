@@ -48,7 +48,7 @@ return function(Tab, Window, WindUI)
     -- ================================= --
     --      Fly + Noclip Logic
     -- ================================= --
-    local flySpeed = 100
+    local flySpeed = 50
     local flying = false
     local noclip = false
     local bodyVelocity, bodyGyro
