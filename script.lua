@@ -7,15 +7,22 @@
 --      สำคัญ: แก้ไข URL ด้านล่างนี้เป็น URL ไฟล์ Raw จาก GitHub ของคุณ
 -- =================================================================== --
 
--- ตัวแปรป้องกัน Cache ทำให้ Executor โหลดไฟล์ล่าสุดเสมอ
+-- =================================================================== --
+--      ตั้งค่าโปรเจกต์ (แก้ไขแค่ตรงนี้)
+-- =================================================================== --
+local GITHUB_USER = "Onlygummy"
+local GITHUB_REPO = "66SIX"
+local GITHUB_BRANCH = "develop" -- <-- เปลี่ยน branch ที่นี่ (เช่น "main" หรือ "develop")
+-- =================================================================== --
+
+-- ตัวแปรป้องกัน Cache และสร้าง Base URL
 local cacheBuster = os.time()
+local baseURL = string.format("https://raw.githubusercontent.com/%s/%s/%s/", GITHUB_USER, GITHUB_REPO, GITHUB_BRANCH)
 
--- URL สำหรับโหลดไลบรารี (จาก GitHub ของคุณ)
-local WindUI_URL = "https://raw.githubusercontent.com/Onlygummy/66SIX/main/windui.lua?v=" .. cacheBuster
-
--- URL สำหรับโหลดโมดูลของแต่ละแท็บ (จาก GitHub ของคุณ)
-local MainTab_URL = "https://raw.githubusercontent.com/Onlygummy/66SIX/main/tabs/main_tab.lua?v=" .. cacheBuster
-local SettingsTab_URL = "https://raw.githubusercontent.com/Onlygummy/66SIX/main/tabs/settings_tab.lua?v=" .. cacheBuster
+-- URL สำหรับโหลดไฟล์ต่างๆ
+local WindUI_URL = baseURL .. "windui.lua?v=" .. cacheBuster
+local MainTab_URL = baseURL .. "tabs/main_tab.lua?v=" .. cacheBuster
+local SettingsTab_URL = baseURL .. "tabs/settings_tab.lua?v=" .. cacheBuster
 
 
 -- =================================================================== --
