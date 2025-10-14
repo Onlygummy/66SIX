@@ -12,6 +12,8 @@ return function(Tab, Window, WindUI)
 
     -- State Variables
     local isCameraMode = false
+    local isTrackerMode = false
+    local originalPlayerCFrame = nil
     local originalCameraCFrame = nil
     local cameraTarget = nil
     local selectedPlayer = nil
@@ -21,11 +23,11 @@ return function(Tab, Window, WindUI)
     local isWPressed, isAPressed, isSPressed, isDPressed = false, false, false, false
     local targetLostDebounce = false
 
-    -- Forward-declare UI elements and functions
+    -- Forward-declare UI elements
     local playerDropdown
     local statusParagraph
     local spyButton
-    local restoreCamera
+    local trackerButton
 
     -- ================================= --
     --  Core Logic
@@ -42,44 +44,73 @@ return function(Tab, Window, WindUI)
         end
     end
 
-    restoreCamera = function()
-        if not isCameraMode then return end
+    local function setNoclip(enabled)
+        if not LocalPlayer.Character then return end
+        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = not enabled
+            end
+        end
+    end
 
+    local function setTransparency(enabled)
+        if not LocalPlayer.Character then return end
+        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") or part:IsA("Decal") then
+                part.Transparency = enabled and 0.7 or 0
+            end
+        end
+    end
+
+    local function restoreAllModes()
+        -- Restore Camera
         if originalCameraCFrame then Camera.CFrame = originalCameraCFrame end
-        
         Camera.CameraType = Enum.CameraType.Custom
-        isCameraMode = false
-        cameraTarget = nil
-        yaw, pitch, zoomDistance = 0, 0, 10
-        isWPressed, isAPressed, isSPressed, isDPressed = false, false, false, false
-        targetLostDebounce = false
-
         ContextActionService:UnbindAction("SpyCameraControlW")
         ContextActionService:UnbindAction("SpyCameraControlA")
         ContextActionService:UnbindAction("SpyCameraControlS")
         ContextActionService:UnbindAction("SpyCameraControlD")
 
+        -- Restore Player
+        if originalPlayerCFrame then
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                LocalPlayer.Character.HumanoidRootPart.CFrame = originalPlayerCFrame
+            end
+        end
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
             LocalPlayer.Character.Humanoid.WalkSpeed = 16
             LocalPlayer.Character.Humanoid.JumpPower = 50
         end
         setPlayerScriptsEnabled(true)
+        setNoclip(false)
+        setTransparency(false)
 
-        if spyButton then spyButton.ButtonFrame:SetTitle("ส่อง (SPY)") end
+        -- Reset State Variables
+        isCameraMode = false
+        isTrackerMode = false
+        cameraTarget = nil
+        originalPlayerCFrame = nil
+        originalCameraCFrame = nil
+        yaw, pitch, zoomDistance = 0, 0, 10
+        isWPressed, isAPressed, isSPressed, isDPressed = false, false, false, false
+        targetLostDebounce = false
+
+        -- Update UI
+        if spyButton then spyButton.ButtonFrame:SetTitle("ส่อง") end
+        if trackerButton then trackerButton.ButtonFrame:SetTitle("Tracker") end
         if statusParagraph then statusParagraph:SetDesc("เป้าหมาย: " .. (selectedPlayer and selectedPlayer.Name or "ยังไม่ได้เลือก")) end
-        WindUI:Notify({ Title = "สถานะ", Content = "ออกจากโหมดส่องแล้ว", Icon = "camera-off" })
+        WindUI:Notify({ Title = "สถานะ", Content = "ออกจากโหมดพิเศษแล้ว", Icon = "camera-off" })
     end
 
-    local function moveCameraToPlayer(targetPlayer)
+    local function startSpyMode(targetPlayer)
         if not targetPlayer or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("Head") then
             WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "เป้าหมายไม่ถูกต้อง", Icon = "x" })
-            return false
+            return
         end
         
         isCameraMode = true
         originalCameraCFrame = Camera.CFrame
         cameraTarget = targetPlayer
-        yaw, pitch, zoomDistance = 0, 0, 10
 
         local function createKeybind(name, key) 
             ContextActionService:BindActionAtPriority(name, function(_, state) 
@@ -97,14 +128,32 @@ return function(Tab, Window, WindUI)
         createKeybind("SpyCameraControlD", Enum.KeyCode.D)
 
         setPlayerScriptsEnabled(false)
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-            LocalPlayer.Character.Humanoid.WalkSpeed = 0
-            LocalPlayer.Character.Humanoid.JumpPower = 0
-        end
         
         spyButton.ButtonFrame:SetTitle("หยุดส่อง")
-        WindUI:Notify({ Title = "สถานะ", Content = "เข้าสู่โหมดส่อง! ใช้ WASD ควบคุม", Icon = "camera" })
-        return true
+        WindUI:Notify({ Title = "สถานะ", Content = "เข้าสู่โหมดส่อง! ใช้ WASD ควบคุมกล้อง", Icon = "camera" })
+    end
+
+    local function startTrackerMode(targetPlayer)
+        if not targetPlayer or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("Head") then
+            WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "เป้าหมายไม่ถูกต้อง", Icon = "x" })
+            return
+        end
+        if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "ไม่พบตัวละครของคุณ", Icon = "x" })
+            return
+        end
+
+        isTrackerMode = true
+        originalPlayerCFrame = LocalPlayer.Character.HumanoidRootPart.CFrame
+        startSpyMode(targetPlayer) -- Reuse spy mode for camera
+        isCameraMode = false -- startSpyMode sets this to true, but we are in tracker mode
+        isTrackerMode = true
+
+        setNoclip(true)
+        setTransparency(true)
+        
+        trackerButton.ButtonFrame:SetTitle("หยุด Tracker")
+        WindUI:Notify({ Title = "สถานะ", Content = "เข้าสู่โหมด Tracker!", Icon = "footprints" })
     end
 
     local function teleportToPlayer(targetPlayer)
@@ -120,35 +169,43 @@ return function(Tab, Window, WindUI)
     -- ================================= --
 
     UserInputService.InputChanged:Connect(function(input)
-        if isCameraMode and input.UserInputType == Enum.UserInputType.MouseWheel then
+        if (isCameraMode or isTrackerMode) and input.UserInputType == Enum.UserInputType.MouseWheel then
             zoomDistance = math.clamp(zoomDistance - input.Position.Z * 2, minZoom, maxZoom)
         end
     end)
 
     RunService.RenderStepped:Connect(function()
-        if isCameraMode and cameraTarget and cameraTarget.Character and cameraTarget.Character:FindFirstChild("Head") then
+        local inSpecialMode = isCameraMode or isTrackerMode
+        if inSpecialMode and cameraTarget and cameraTarget.Character and cameraTarget.Character:FindFirstChild("Head") then
             Camera.CameraType = Enum.CameraType.Scriptable
-            if Camera.CameraType ~= Enum.CameraType.Scriptable then
-                Camera.CameraType = Enum.CameraType.Scriptable
-            end
+            if Camera.CameraType ~= Enum.CameraType.Scriptable then Camera.CameraType = Enum.CameraType.Scriptable end
             UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 
+            -- Camera control logic
             local targetPos = cameraTarget.Character.Head.Position
             if isWPressed then pitch = math.clamp(pitch - cameraSpeed, -math.pi / 3, math.pi / 3) end
             if isSPressed then pitch = math.clamp(pitch + cameraSpeed, -math.pi / 3, math.pi / 3) end
             if isAPressed then yaw = yaw + cameraSpeed end
             if isDPressed then yaw = yaw - cameraSpeed end
-
             local cameraPos = targetPos + CFrame.Angles(0, yaw, 0) * CFrame.Angles(pitch, 0, 0) * Vector3.new(0, 5, zoomDistance)
             Camera.CFrame = CFrame.new(cameraPos, targetPos)
+            
+            -- Tracker-specific logic
+            if isTrackerMode then
+                local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                local targetRoot = cameraTarget.Character:FindFirstChild("HumanoidRootPart")
+                if myRoot and targetRoot then
+                    myRoot.CFrame = targetRoot.CFrame * CFrame.new(0, -5, 0)
+                end
+            end
             targetLostDebounce = false
 
-        elseif isCameraMode and not targetLostDebounce then
+        elseif inSpecialMode and not targetLostDebounce then
             targetLostDebounce = true
             if statusParagraph then statusParagraph:SetDesc("เป้าหมาย: หายไป (รอ 3 วินาที)") end
             task.wait(3)
-            if isCameraMode and (not cameraTarget or not cameraTarget.Character or not cameraTarget.Character:FindFirstChild("Head")) then
-                restoreCamera()
+            if (isCameraMode or isTrackerMode) and (not cameraTarget or not cameraTarget.Character or not cameraTarget.Character:FindFirstChild("Head")) then
+                restoreAllModes()
             end
         end
     end)
@@ -157,18 +214,8 @@ return function(Tab, Window, WindUI)
     --      WindUI Element Creation
     -- ================================= --
 
-    -- Section 1: Target Selection
-    local TargetSection = Tab:Section({
-        Title = "การเลือกเป้าหมาย",
-        Icon = "crosshair",
-        Opened = true
-    })
-
-    statusParagraph = TargetSection:Paragraph({
-        Title = "สถานะ",
-        Desc = "เป้าหมาย: ยังไม่ได้เลือก"
-    })
-
+    local TargetSection = Tab:Section({ Title = "การเลือกเป้าหมาย", Icon = "crosshair", Opened = true })
+    statusParagraph = TargetSection:Paragraph({ Title = "สถานะ", Desc = "เป้าหมาย: ยังไม่ได้เลือก" })
     playerDropdown = TargetSection:Dropdown({
         Title = "เลือกเป้าหมาย",
         Desc = "เลือกผู้เล่นที่จะส่องหรือเทเลพอร์ต",
@@ -176,67 +223,132 @@ return function(Tab, Window, WindUI)
         SearchBarEnabled = true,
         Callback = function(playerName)
             selectedPlayer = Players:FindFirstChild(playerName)
-            if selectedPlayer then
-                statusParagraph:SetDesc("เป้าหมาย: " .. selectedPlayer.Name)
-            else
-                statusParagraph:SetDesc("เป้าหมาย: ไม่พบผู้เล่น")
-            end
+            if selectedPlayer then statusParagraph:SetDesc("เป้าหมาย: " .. selectedPlayer.Name)
+            else statusParagraph:SetDesc("เป้าหมาย: ไม่พบผู้เล่น") end
             playerDropdown:Close()
         end
     })
-
-    local function refreshPlayerList()
-        local playerNames = {}
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer then
-                table.insert(playerNames, player.Name)
-            end
-        end
-        playerDropdown:Refresh(playerNames)
-    end
-
     TargetSection:Button({
         Title = "รีเฟรชรายชื่อผู้เล่น",
         Icon = "refresh-cw",
         Callback = function()
-            refreshPlayerList()
+            local playerNames = {}
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer then table.insert(playerNames, player.Name) end
+            end
+            playerDropdown:Refresh(playerNames)
             WindUI:Notify({ Title = "สำเร็จ", Content = "รีเฟรชรายชื่อผู้เล่นแล้ว", Icon = "check" })
         end
     })
 
-    -- Section 2: Actions
-    local ActionSection = Tab:Section({
-        Title = "คำสั่ง",
-        Icon = "zap",
-        Opened = true
-    })
-
+    local ActionSection = Tab:Section({ Title = "คำสั่งทั่วไป", Icon = "zap", Opened = true })
     spyButton = ActionSection:Button({
         Title = "ส่อง",
         Icon = "camera",
         Callback = function()
-            if isCameraMode then
-                restoreCamera()
-            elseif selectedPlayer then
-                moveCameraToPlayer(selectedPlayer)
-            else
-                WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกเป้าหมายก่อน", Icon = "x" })
-            end
+            if isCameraMode or isTrackerMode then restoreAllModes()
+            elseif selectedPlayer then startSpyMode(selectedPlayer)
+            else WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกเป้าหมายก่อน", Icon = "x" }) end
         end
     })
-
     ActionSection:Button({
         Title = "เทเลพอร์ต",
         Icon = "send",
         Callback = function()
-            if selectedPlayer then
-                teleportToPlayer(selectedPlayer)
-            else
-                WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกเป้าหมายก่อน", Icon = "x" })
-            end
+            if selectedPlayer then teleportToPlayer(selectedPlayer)
+            else WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกเป้าหมายก่อน", Icon = "x" }) end
         end
     })
 
+    -- ================================= --
+    --      Map-Specific Section
+    -- ================================= --
+    local BANNATOWN_PLACE_ID = 77837537595343
+    if game.PlaceId == BANNATOWN_PLACE_ID then
+        local BannaTownSection = Tab:Section({ Title = "BannaTown", Icon = "map-pin", Opened = true })
+
+        -- God Mode (Fly/Noclip) Logic
+        local flySpeed = 50
+        local isFlyEnabled = false
+        local bodyVelocity, bodyGyro
+        local flyLoop, noclipLoop
+
+        local function setupFlyMovers()
+            if not bodyVelocity then
+                bodyVelocity = Instance.new("BodyVelocity")
+                bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+            end
+            if not bodyGyro then
+                bodyGyro = Instance.new("BodyGyro")
+                bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+            end
+        end
+
+        local function updateFlyMovement()
+            if not isFlyEnabled or not LocalPlayer.Character then return end
+            local rootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if not rootPart or not workspace.CurrentCamera then return end
+            local moveDir = Vector3.new(0, 0, 0)
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + workspace.CurrentCamera.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - workspace.CurrentCamera.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - workspace.CurrentCamera.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + workspace.CurrentCamera.CFrame.RightVector end
+            bodyVelocity.Velocity = moveDir * flySpeed
+            bodyGyro.CFrame = workspace.CurrentCamera.CFrame
+        end
+
+        local function setFly(value)
+            isFlyEnabled = value
+            local char = LocalPlayer.Character
+            if not char then return end
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            local rootPart = char:FindFirstChild("HumanoidRootPart")
+            if not humanoid or not rootPart then return end
+
+            if value then
+                setupFlyMovers()
+                bodyVelocity.Parent = rootPart
+                bodyGyro.Parent = rootPart
+                humanoid.PlatformStand = true
+                if flyLoop then flyLoop:Disconnect() end
+                if noclipLoop then noclipLoop:Disconnect() end
+                flyLoop = RunService.RenderStepped:Connect(updateFlyMovement)
+                noclipLoop = RunService.Stepped:Connect(function() setNoclip(true) end)
+                WindUI:Notify({ Title = "God Mode", Content = "เปิดใช้งาน", Icon = "feather" })
+            else
+                if bodyVelocity then bodyVelocity.Parent = nil end
+                if bodyGyro then bodyGyro.Parent = nil end
+                humanoid.PlatformStand = false
+                if flyLoop then flyLoop:Disconnect(); flyLoop = nil end
+                if noclipLoop then noclipLoop:Disconnect(); noclipLoop = nil end
+                setNoclip(false)
+                WindUI:Notify({ Title = "God Mode", Content = "ปิดใช้งาน", Icon = "feather" })
+            end
+        end
+        
+        BannaTownSection:Toggle({
+            Title = "God Mode",
+            Desc = "เปิด/ปิดโหมด God (บิน, เดินทะลุ)",
+            Value = false,
+            Callback = function(value) setFly(value) end
+        })
+
+        trackerButton = BannaTownSection:Button({
+            Title = "Tracker",
+            Icon = "footprints",
+            Callback = function()
+                if isTrackerMode then restoreAllModes()
+                elseif selectedPlayer then startTrackerMode(selectedPlayer)
+                else WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกเป้าหมายก่อน", Icon = "x" }) end
+            end
+        })
+    end
+
     -- Initial population of the player list
-    refreshPlayerList()
+    local playerNames = {}
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then table.insert(playerNames, player.Name) end
+    end
+    playerDropdown:Refresh(playerNames)
 end

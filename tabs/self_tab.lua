@@ -90,11 +90,11 @@ return function(Tab, Window, WindUI)
     --      WindUI Element Creation
     -- ================================= --
 
-    local FlySection = Tab:Section({ Title = "Fly / Noclip", Icon = "feather", Opened = true })
+    local GodModeSection = Tab:Section({ Title = "God Mode", Icon = "feather", Opened = true })
     
-    FlySection:Toggle({
-        Title = "Fly / Noclip",
-        Desc = "เปิด/ปิดการบินและเดินทะลุ (ความเร็วคงที่)",
+    GodModeSection:Toggle({
+        Title = "God Mode",
+        Desc = "เปิด/ปิดโหมด God (บิน, เดินทะลุ)",
         Value = false,
         Callback = function(value)
             setFly(value)
