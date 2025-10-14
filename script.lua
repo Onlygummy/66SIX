@@ -46,7 +46,10 @@ local Window = WindUI:CreateWindow({
     Title = "66SIX",
     Size = UDim2.new(0, 580, 0, 460),
     Theme = "Midnight",
-    ToggleKey = Enum.KeyCode.RightControl
+    ToggleKey = Enum.KeyCode.RightControl,
+    OpenButton = {
+        Enabled = false
+    }
 })
 
 -- สร้างแท็บ
