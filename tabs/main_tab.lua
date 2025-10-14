@@ -26,8 +26,9 @@ return function(Tab, Window, WindUI)
     -- Forward-declare UI elements
     local playerDropdown
     local statusParagraph
-    local spyButton
-    local trackerButton
+    local spyToggle
+    local trackerToggle
+    local restoreAllModes
 
     -- ================================= --
     --  Core Logic
@@ -62,7 +63,10 @@ return function(Tab, Window, WindUI)
         end
     end
 
-    local function restoreAllModes()
+    restoreAllModes = function(fromToggle)
+        local wasInSpyMode = isCameraMode
+        local wasInTrackerMode = isTrackerMode
+
         -- Restore Camera
         if originalCameraCFrame then Camera.CFrame = originalCameraCFrame end
         Camera.CameraType = Enum.CameraType.Custom
@@ -96,8 +100,8 @@ return function(Tab, Window, WindUI)
         targetLostDebounce = false
 
         -- Update UI
-        if spyButton then spyButton.ButtonFrame:SetTitle("ส่อง") end
-        if trackerButton then trackerButton.ButtonFrame:SetTitle("Tracker") end
+        if wasInSpyMode and spyToggle and not fromToggle then spyToggle:SetValue(false) end
+        if wasInTrackerMode and trackerToggle and not fromToggle then trackerToggle:SetValue(false) end
         if statusParagraph then statusParagraph:SetDesc("เป้าหมาย: " .. (selectedPlayer and selectedPlayer.Name or "ยังไม่ได้เลือก")) end
         WindUI:Notify({ Title = "สถานะ", Content = "ออกจากโหมดพิเศษแล้ว", Icon = "camera-off" })
     end
@@ -105,7 +109,7 @@ return function(Tab, Window, WindUI)
     local function startSpyMode(targetPlayer)
         if not targetPlayer or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("Head") then
             WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "เป้าหมายไม่ถูกต้อง", Icon = "x" })
-            return
+            return false
         end
         
         isCameraMode = true
@@ -129,31 +133,30 @@ return function(Tab, Window, WindUI)
 
         setPlayerScriptsEnabled(false)
         
-        spyButton.ButtonFrame:SetTitle("หยุดส่อง")
         WindUI:Notify({ Title = "สถานะ", Content = "เข้าสู่โหมดส่อง! ใช้ WASD ควบคุมกล้อง", Icon = "camera" })
+        return true
     end
 
     local function startTrackerMode(targetPlayer)
         if not targetPlayer or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("Head") then
             WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "เป้าหมายไม่ถูกต้อง", Icon = "x" })
-            return
+            return false
         end
         if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
             WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "ไม่พบตัวละครของคุณ", Icon = "x" })
-            return
+            return false
         end
 
+        if not startSpyMode(targetPlayer) then return false end
+        isCameraMode = false
         isTrackerMode = true
         originalPlayerCFrame = LocalPlayer.Character.HumanoidRootPart.CFrame
-        startSpyMode(targetPlayer) -- Reuse spy mode for camera
-        isCameraMode = false -- startSpyMode sets this to true, but we are in tracker mode
-        isTrackerMode = true
 
         setNoclip(true)
         setTransparency(true)
         
-        trackerButton.ButtonFrame:SetTitle("หยุด Tracker")
         WindUI:Notify({ Title = "สถานะ", Content = "เข้าสู่โหมด Tracker!", Icon = "footprints" })
+        return true
     end
 
     local function teleportToPlayer(targetPlayer)
@@ -181,7 +184,6 @@ return function(Tab, Window, WindUI)
             if Camera.CameraType ~= Enum.CameraType.Scriptable then Camera.CameraType = Enum.CameraType.Scriptable end
             UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 
-            -- Camera control logic
             local targetPos = cameraTarget.Character.Head.Position
             if isWPressed then pitch = math.clamp(pitch - cameraSpeed, -math.pi / 3, math.pi / 3) end
             if isSPressed then pitch = math.clamp(pitch + cameraSpeed, -math.pi / 3, math.pi / 3) end
@@ -190,7 +192,6 @@ return function(Tab, Window, WindUI)
             local cameraPos = targetPos + CFrame.Angles(0, yaw, 0) * CFrame.Angles(pitch, 0, 0) * Vector3.new(0, 5, zoomDistance)
             Camera.CFrame = CFrame.new(cameraPos, targetPos)
             
-            -- Tracker-specific logic
             if isTrackerMode then
                 local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
                 local targetRoot = cameraTarget.Character:FindFirstChild("HumanoidRootPart")
@@ -242,13 +243,19 @@ return function(Tab, Window, WindUI)
     })
 
     local ActionSection = Tab:Section({ Title = "คำสั่งทั่วไป", Icon = "zap", Opened = true })
-    spyButton = ActionSection:Button({
+    spyToggle = ActionSection:Toggle({
         Title = "ส่อง",
         Icon = "camera",
-        Callback = function()
-            if isCameraMode or isTrackerMode then restoreAllModes()
-            elseif selectedPlayer then startSpyMode(selectedPlayer)
-            else WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกเป้าหมายก่อน", Icon = "x" }) end
+        Callback = function(value)
+            if value then
+                if isTrackerMode then trackerToggle:SetValue(false) end
+                if not startSpyMode(selectedPlayer) then
+                    task.wait()
+                    spyToggle:SetValue(false)
+                end
+            else
+                if isCameraMode then restoreAllModes(true) end
+            end
         end
     })
     ActionSection:Button({
@@ -267,7 +274,6 @@ return function(Tab, Window, WindUI)
     if game.PlaceId == BANNATOWN_PLACE_ID then
         local BannaTownSection = Tab:Section({ Title = "BannaTown", Icon = "map-pin", Opened = true })
 
-        -- God Mode (Fly/Noclip) Logic
         local flySpeed = 50
         local isFlyEnabled = false
         local bodyVelocity, bodyGyro
@@ -334,13 +340,19 @@ return function(Tab, Window, WindUI)
             Callback = function(value) setFly(value) end
         })
 
-        trackerButton = BannaTownSection:Button({
+        trackerToggle = BannaTownSection:Toggle({
             Title = "Tracker",
             Icon = "footprints",
-            Callback = function()
-                if isTrackerMode then restoreAllModes()
-                elseif selectedPlayer then startTrackerMode(selectedPlayer)
-                else WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกเป้าหมายก่อน", Icon = "x" }) end
+            Callback = function(value)
+                if value then
+                    if isCameraMode then spyToggle:SetValue(false) end
+                    if not startTrackerMode(selectedPlayer) then
+                        task.wait()
+                        trackerToggle:SetValue(false)
+                    end
+                else
+                    if isTrackerMode then restoreAllModes(true) end
+                end
             end
         })
     end
