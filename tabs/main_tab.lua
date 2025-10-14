@@ -118,6 +118,7 @@ return function(Tab, Window, WindUI)
         isCameraMode = true
         originalCameraCFrame = Camera.CFrame
         cameraTarget = targetPlayer
+        Camera.CameraSubject = nil
 
         local function createKeybind(name, key) 
             ContextActionService:BindActionAtPriority(name, function(_, state) 
