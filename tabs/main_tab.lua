@@ -319,7 +319,6 @@ return function(Tab, Window, WindUI)
         
         BannaTownSection:Toggle({
             Title = "God Mode",
-            Desc = "เปิด/ปิดโหมด God (บิน, เดินทะลุ)",
             Value = false,
             Callback = function(value) setFly(value) end
         })
