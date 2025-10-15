@@ -75,7 +75,7 @@ return function(Tab, Window, WindUI)
         end
         setPlayerScriptsEnabled(true)
 
-        if spyButton then spyButton.ButtonFrame:SetTitle("ส่อง (SPY)") end
+        -- spyButton is now a toggle, no need to set title
         if statusParagraph then statusParagraph:SetDesc("เป้าหมาย: " .. (selectedPlayer and selectedPlayer.Name or "ยังไม่ได้เลือก")) end
         WindUI:Notify({ Title = "สถานะ", Content = "ออกจากโหมดส่องแล้ว", Icon = "camera-off" })
     end
@@ -112,7 +112,7 @@ return function(Tab, Window, WindUI)
             LocalPlayer.Character.Humanoid.JumpPower = 0
         end
         
-        spyButton.ButtonFrame:SetTitle("หยุดส่อง")
+        -- spyButton is now a toggle, no need to set title
         WindUI:Notify({ Title = "สถานะ", Content = "เข้าสู่โหมดส่อง! ใช้ WASD ควบคุม", Icon = "camera" })
         return true
     end
@@ -221,16 +221,20 @@ return function(Tab, Window, WindUI)
         Opened = true
     })
 
-    spyButton = ActionSection:Button({
+    local spyToggle -- Forward declare for the callback
+    spyToggle = ActionSection:Toggle({
         Title = "ส่อง",
         Icon = "camera",
-        Callback = function()
-            if isCameraMode then
-                restoreCamera()
-            elseif selectedPlayer then
-                moveCameraToPlayer(selectedPlayer)
+        Callback = function(value)
+            if value then
+                if not moveCameraToPlayer(selectedPlayer) then
+                    task.wait()
+                    spyToggle:SetValue(false)
+                end
             else
-                WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกเป้าหมายก่อน", Icon = "x" })
+                if isCameraMode then
+                    restoreCamera()
+                end
             end
         end
     })
