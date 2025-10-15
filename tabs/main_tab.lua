@@ -26,8 +26,8 @@ return function(Tab, Window, WindUI)
     -- Forward-declare UI elements
     local playerDropdown
     local statusParagraph
-    local spyToggle
-    local trackerToggle
+    local spyButton
+    local trackerButton
     local restoreAllModes
 
     -- ================================= --
@@ -63,19 +63,14 @@ return function(Tab, Window, WindUI)
         end
     end
 
-    restoreAllModes = function(fromToggle)
-        WindUI:Notify({ Title = "Debug", Content = "restoreAllModes START", Duration = 3 })
-        local wasInSpyMode = isCameraMode
-        local wasInTrackerMode = isTrackerMode
+    restoreAllModes = function()
+        if not (isCameraMode or isTrackerMode) then return end
 
-        -- Re-enable default player scripts FIRST to allow them to take back control
-        setPlayerScriptsEnabled(true)
-
-        -- Restore Camera to default state
+        -- Restore Camera (based on old working version)
+        if originalCameraCFrame then Camera.CFrame = originalCameraCFrame end
         Camera.CameraType = Enum.CameraType.Custom
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
-            Camera.CameraSubject = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        end
+        -- NOTE: Do not set Camera.CameraSubject, let the engine handle it. This seems to be the key.
+
         ContextActionService:UnbindAction("SpyCameraControlW")
         ContextActionService:UnbindAction("SpyCameraControlA")
         ContextActionService:UnbindAction("SpyCameraControlS")
@@ -91,6 +86,7 @@ return function(Tab, Window, WindUI)
             LocalPlayer.Character.Humanoid.WalkSpeed = 16
             LocalPlayer.Character.Humanoid.JumpPower = 50
         end
+        setPlayerScriptsEnabled(true)
         setNoclip(false)
         setTransparency(false)
 
@@ -104,9 +100,7 @@ return function(Tab, Window, WindUI)
         isWPressed, isAPressed, isSPressed, isDPressed = false, false, false, false
         targetLostDebounce = false
 
-        -- Update UI
-        if wasInSpyMode and spyToggle and not fromToggle then spyToggle:SetValue(false) end
-        if wasInTrackerMode and trackerToggle and not fromToggle then trackerToggle:SetValue(false) end
+        -- Update UI (WindUI v1.6 does not seem to have a SetTitle method, so we can't change button text)
         if statusParagraph then statusParagraph:SetDesc("เป้าหมาย: " .. (selectedPlayer and selectedPlayer.Name or "ยังไม่ได้เลือก")) end
         WindUI:Notify({ Title = "สถานะ", Content = "ออกจากโหมดพิเศษแล้ว", Icon = "camera-off" })
     end
@@ -120,7 +114,6 @@ return function(Tab, Window, WindUI)
         isCameraMode = true
         originalCameraCFrame = Camera.CFrame
         cameraTarget = targetPlayer
-        Camera.CameraSubject = nil
 
         local function createKeybind(name, key) 
             ContextActionService:BindActionAtPriority(name, function(_, state) 
@@ -148,6 +141,7 @@ return function(Tab, Window, WindUI)
     end
 
     local function startTrackerMode(targetPlayer)
+        if isCameraMode then restoreAllModes() end -- Stop spy mode if active
         if not targetPlayer or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("Head") then
             WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "เป้าหมายไม่ถูกต้อง", Icon = "x" })
             return false
@@ -157,10 +151,16 @@ return function(Tab, Window, WindUI)
             return false
         end
 
-        if not startSpyMode(targetPlayer) then return false end
-        isCameraMode = false
         isTrackerMode = true
+        isCameraMode = true -- Tracker mode is an extension of camera mode
         originalPlayerCFrame = LocalPlayer.Character.HumanoidRootPart.CFrame
+        originalCameraCFrame = Camera.CFrame
+        cameraTarget = targetPlayer
+
+        -- Reuse keybinds from spy mode
+        startSpyMode(targetPlayer)
+        isCameraMode = true -- startSpyMode sets it, but just to be sure
+        isTrackerMode = true -- startSpyMode doesn't know about tracker mode
 
         setNoclip(true)
         setTransparency(true)
@@ -252,19 +252,17 @@ return function(Tab, Window, WindUI)
     })
 
     local ActionSection = Tab:Section({ Title = "คำสั่งทั่วไป", Icon = "zap", Opened = true })
-    spyToggle = ActionSection:Toggle({
+    spyButton = ActionSection:Button({
         Title = "ส่อง",
         Icon = "camera",
-        Callback = function(value)
-            if value then
-                if isTrackerMode then trackerToggle:SetValue(false) end
-                if not startSpyMode(selectedPlayer) then
-                    task.wait()
-                    spyToggle:SetValue(false)
-                end
+        Callback = function()
+            if isCameraMode and not isTrackerMode then
+                restoreAllModes()
+            elseif selectedPlayer then
+                if isTrackerMode then restoreAllModes() end
+                startSpyMode(selectedPlayer)
             else
-                WindUI:Notify({ Title = "Debug", Content = "Spy Toggle OFF", Duration = 3 })
-                if isCameraMode then restoreAllModes(true) end
+                WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกเป้าหมายก่อน", Icon = "x" })
             end
         end
     })
@@ -350,19 +348,16 @@ return function(Tab, Window, WindUI)
             Callback = function(value) setFly(value) end
         })
 
-        trackerToggle = BannaTownSection:Toggle({
+        trackerButton = BannaTownSection:Button({
             Title = "Tracker",
             Icon = "footprints",
-            Callback = function(value)
-                if value then
-                    if isCameraMode then spyToggle:SetValue(false) end
-                    if not startTrackerMode(selectedPlayer) then
-                        task.wait()
-                        trackerToggle:SetValue(false)
-                    end
+            Callback = function()
+                if isTrackerMode then
+                    restoreAllModes()
+                elseif selectedPlayer then
+                    startTrackerMode(selectedPlayer)
                 else
-                    WindUI:Notify({ Title = "Debug", Content = "Tracker Toggle OFF", Duration = 3 })
-                    if isTrackerMode then restoreAllModes(true) end
+                    WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกเป้าหมายก่อน", Icon = "x" })
                 end
             end
         })
