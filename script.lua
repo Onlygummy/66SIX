@@ -12,7 +12,7 @@
 -- =================================================================== --
 local GITHUB_USER = "Onlygummy"
 local GITHUB_REPO = "66SIX"
-local GITHUB_BRANCH = "develop" -- <-- เปลี่ยน branch ที่นี่ (เช่น "main" หรือ "develop")
+local GITHUB_BRANCH = "main" -- <-- เปลี่ยน branch ที่นี่ (เช่น "main" หรือ "develop")
 -- =================================================================== --
 
 -- ตัวแปรป้องกัน Cache และสร้าง Base URL
@@ -62,38 +62,7 @@ local SettingsTab = Window:Tab({
 })
 
 -- =================================================================== --
---      แท็บเฉพาะแมพ (Map-Specific Tabs)
--- =================================================================== --
-local MAP_SPECIFIC_TABS = {
-    [77837537595343] = {
-        Title = "BannaTown",
-        Icon = "map-pin",
-        Module = "tabs/self_tab.lua"
-    },
-    --[[ ตัวอย่างการเพิ่มแมพอื่น
-    [123456789] = {
-        Title = "Another Map",
-        Icon = "swords",
-        Module = "tabs/another_map_tab.lua"
-    }
-    --]]
-}
-
-local currentPlaceId = game.PlaceId
-local mapConfig = MAP_SPECIFIC_TABS[currentPlaceId]
-
-if mapConfig then
-    -- โหลดและสร้างแท็บเฉพาะแมพเมื่อ PlaceId ตรงกัน
-    local MapTab_URL = baseURL .. mapConfig.Module .. "?v=" .. cacheBuster
-    local MapTabModule = loadstring(game:HttpGet(MapTab_URL))()
-
-    local MapTab = Window:Tab({
-        Title = mapConfig.Title,
-        Icon = mapConfig.Icon
-    })
-
-    MapTabModule(MapTab, Window, WindUI)
-end
+--      (ส่วนของแท็บเฉพาะแมพถูกย้ายไปรวมใน main_tab.lua แล้ว)
 -- =================================================================== --
 
 -- เรียกใช้ Module เพื่อสร้าง UI ในแท็บหลัก

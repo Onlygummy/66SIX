@@ -1,5 +1,5 @@
 -- D:/Script/tabs/main_tab.lua
--- ไฟล์นี้จะเก็บโค้ดทั้งหมดที่เกี่ยวกับ "แท็บหน้าหลัก"
+-- This is the merged version with the old stable Spy function and the new God Mode function.
 
 return function(Tab, Window, WindUI)
     -- Services
@@ -42,6 +42,16 @@ return function(Tab, Window, WindUI)
         end
     end
 
+    -- ADDED for God Mode
+    local function setNoclip(enabled)
+        if not LocalPlayer.Character then return end
+        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = not enabled
+            end
+        end
+    end
+
     restoreCamera = function()
         if not isCameraMode then return end
 
@@ -65,7 +75,7 @@ return function(Tab, Window, WindUI)
         end
         setPlayerScriptsEnabled(true)
 
-        if spyButton then spyButton.ButtonFrame:SetTitle("ส่อง (SPY)") end
+        -- spyButton is now a toggle, no need to set title
         if statusParagraph then statusParagraph:SetDesc("เป้าหมาย: " .. (selectedPlayer and selectedPlayer.Name or "ยังไม่ได้เลือก")) end
         WindUI:Notify({ Title = "สถานะ", Content = "ออกจากโหมดส่องแล้ว", Icon = "camera-off" })
     end
@@ -102,7 +112,7 @@ return function(Tab, Window, WindUI)
             LocalPlayer.Character.Humanoid.JumpPower = 0
         end
         
-        spyButton.ButtonFrame:SetTitle("หยุดส่อง")
+        -- spyButton is now a toggle, no need to set title
         WindUI:Notify({ Title = "สถานะ", Content = "เข้าสู่โหมดส่อง! ใช้ WASD ควบคุม", Icon = "camera" })
         return true
     end
@@ -211,16 +221,20 @@ return function(Tab, Window, WindUI)
         Opened = true
     })
 
-    spyButton = ActionSection:Button({
+    local spyToggle -- Forward declare for the callback
+    spyToggle = ActionSection:Toggle({
         Title = "ส่อง",
         Icon = "camera",
-        Callback = function()
-            if isCameraMode then
-                restoreCamera()
-            elseif selectedPlayer then
-                moveCameraToPlayer(selectedPlayer)
+        Callback = function(value)
+            if value then
+                if not moveCameraToPlayer(selectedPlayer) then
+                    task.wait()
+                    spyToggle:SetValue(false)
+                end
             else
-                WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกเป้าหมายก่อน", Icon = "x" })
+                if isCameraMode then
+                    restoreCamera()
+                end
             end
         end
     })
@@ -236,6 +250,79 @@ return function(Tab, Window, WindUI)
             end
         end
     })
+
+    -- ================================= --
+    --      Map-Specific Section (God Mode ADDED BACK)
+    -- ================================= --
+    local BANNATOWN_PLACE_ID = 77837537595343
+    if game.PlaceId == BANNATOWN_PLACE_ID then
+        local BannaTownSection = Tab:Section({ Title = "BannaTown", Icon = "map-pin", Opened = true })
+
+        local flySpeed = 50
+        local isFlyEnabled = false
+        local bodyVelocity, bodyGyro
+        local flyLoop, noclipLoop
+
+        local function setupFlyMovers()
+            if not bodyVelocity then
+                bodyVelocity = Instance.new("BodyVelocity")
+                bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+            end
+            if not bodyGyro then
+                bodyGyro = Instance.new("BodyGyro")
+                bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+            end
+        end
+
+        local function updateFlyMovement()
+            if not isFlyEnabled or not LocalPlayer.Character then return end
+            local rootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if not rootPart or not workspace.CurrentCamera then return end
+            local moveDir = Vector3.new(0, 0, 0)
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + workspace.CurrentCamera.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - workspace.CurrentCamera.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - workspace.CurrentCamera.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + workspace.CurrentCamera.CFrame.RightVector end
+            bodyVelocity.Velocity = moveDir * flySpeed
+            bodyGyro.CFrame = workspace.CurrentCamera.CFrame
+        end
+
+        local function setFly(value)
+            isFlyEnabled = value
+            local char = LocalPlayer.Character
+            if not char then return end
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            local rootPart = char:FindFirstChild("HumanoidRootPart")
+            if not humanoid or not rootPart then return end
+
+            if value then
+                setupFlyMovers()
+                bodyVelocity.Parent = rootPart
+                bodyGyro.Parent = rootPart
+                humanoid.PlatformStand = true
+                if flyLoop then flyLoop:Disconnect() end
+                if noclipLoop then noclipLoop:Disconnect() end
+                flyLoop = RunService.RenderStepped:Connect(updateFlyMovement)
+                noclipLoop = RunService.Stepped:Connect(function() setNoclip(true) end)
+                WindUI:Notify({ Title = "God Mode", Content = "เปิดใช้งาน", Icon = "feather" })
+            else
+                if bodyVelocity then bodyVelocity.Parent = nil end
+                if bodyGyro then bodyGyro.Parent = nil end
+                humanoid.PlatformStand = false
+                if flyLoop then flyLoop:Disconnect(); flyLoop = nil end
+                if noclipLoop then noclipLoop:Disconnect(); noclipLoop = nil end
+                setNoclip(false)
+                WindUI:Notify({ Title = "God Mode", Content = "ปิดใช้งาน", Icon = "feather" })
+            end
+        end
+        
+        BannaTownSection:Toggle({
+            Title = "God Mode",
+            Value = false,
+            Callback = function(value) setFly(value) end
+        })
+    end
 
     -- Initial population of the player list
     refreshPlayerList()
