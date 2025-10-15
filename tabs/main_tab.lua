@@ -224,7 +224,7 @@ return function(Tab, Window, WindUI)
     --      WindUI Element Creation
     -- ================================= --
 
-    local TargetSection = Tab:Section({ Title = "การเลือกเป้าหมาย", Icon = "crosshair", Opened = true })
+    local TargetSection = Tab:Section({ Title = "การเลือกเป้าหมาย (TEST_V3)", Icon = "crosshair", Opened = true })
     statusParagraph = TargetSection:Paragraph({ Title = "สถานะ", Desc = "เป้าหมาย: ยังไม่ได้เลือก" })
     playerDropdown = TargetSection:Dropdown({
         Title = "เลือกเป้าหมาย",
