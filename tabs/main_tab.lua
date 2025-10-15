@@ -64,6 +64,7 @@ return function(Tab, Window, WindUI)
     end
 
     restoreAllModes = function(fromToggle)
+        WindUI:Notify({ Title = "Debug", Content = "restoreAllModes START", Duration = 3 })
         local wasInSpyMode = isCameraMode
         local wasInTrackerMode = isTrackerMode
 
@@ -262,6 +263,7 @@ return function(Tab, Window, WindUI)
                     spyToggle:SetValue(false)
                 end
             else
+                WindUI:Notify({ Title = "Debug", Content = "Spy Toggle OFF", Duration = 3 })
                 if isCameraMode then restoreAllModes(true) end
             end
         end
@@ -359,6 +361,7 @@ return function(Tab, Window, WindUI)
                         trackerToggle:SetValue(false)
                     end
                 else
+                    WindUI:Notify({ Title = "Debug", Content = "Tracker Toggle OFF", Duration = 3 })
                     if isTrackerMode then restoreAllModes(true) end
                 end
             end
