@@ -67,8 +67,10 @@ return function(Tab, Window, WindUI)
         local wasInSpyMode = isCameraMode
         local wasInTrackerMode = isTrackerMode
 
-        -- Restore Camera
-        if originalCameraCFrame then Camera.CFrame = originalCameraCFrame end
+        -- Re-enable default player scripts FIRST to allow them to take back control
+        setPlayerScriptsEnabled(true)
+
+        -- Restore Camera to default state
         Camera.CameraType = Enum.CameraType.Custom
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
             Camera.CameraSubject = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
@@ -88,7 +90,6 @@ return function(Tab, Window, WindUI)
             LocalPlayer.Character.Humanoid.WalkSpeed = 16
             LocalPlayer.Character.Humanoid.JumpPower = 50
         end
-        setPlayerScriptsEnabled(true)
         setNoclip(false)
         setTransparency(false)
 
@@ -189,7 +190,6 @@ return function(Tab, Window, WindUI)
         local inSpecialMode = isCameraMode or isTrackerMode
         if inSpecialMode and cameraTarget and cameraTarget.Character and cameraTarget.Character:FindFirstChild("Head") then
             Camera.CameraType = Enum.CameraType.Scriptable
-            if Camera.CameraType ~= Enum.CameraType.Scriptable then Camera.CameraType = Enum.CameraType.Scriptable end
             UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 
             local targetPos = cameraTarget.Character.Head.Position
