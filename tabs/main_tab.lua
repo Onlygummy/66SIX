@@ -324,6 +324,49 @@ return function(Tab, Window, WindUI)
             Value = false,
             Callback = function(value) setFly(value) end
         })
+
+        local isNewGodModeActive = false
+        local originalCFrame = nil
+        local newGodModeLoop = nil
+
+        BannaTownSection:Toggle({
+            Title = "New",
+            Value = false,
+            Callback = function(value)
+                isNewGodModeActive = value
+                local char = LocalPlayer.Character
+                if not char then return end
+                local humanoid = char:FindFirstChildOfClass("Humanoid")
+                local rootPart = char:FindFirstChild("HumanoidRootPart")
+                if not humanoid or not rootPart then return end
+
+                if value then
+                    originalCFrame = rootPart.CFrame
+                    setNoclip(true)
+                    humanoid.PlatformStand = true
+
+                    newGodModeLoop = RunService.RenderStepped:Connect(function()
+                        if rootPart and rootPart.Parent then
+                            rootPart.Position = Vector3.new(rootPart.Position.X, -12, rootPart.Position.Z)
+                        end
+                    end)
+                    WindUI:Notify({ Title = "New God Mode", Content = "เปิดใช้งาน", Icon = "feather" })
+                else
+                    if newGodModeLoop then
+                        newGodModeLoop:Disconnect()
+                        newGodModeLoop = nil
+                    end
+                    setNoclip(false)
+                    humanoid.PlatformStand = false
+                    if originalCFrame then
+                        rootPart.CFrame = originalCFrame
+                        originalCFrame = nil
+                    end
+                    WindUI:Notify({ Title = "New God Mode", Content = "ปิดใช้งาน", Icon = "feather" })
+                end
+            end
+        })
+
     end
 
     -- Initial population of the player list
