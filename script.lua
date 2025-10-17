@@ -12,7 +12,7 @@
 -- =================================================================== --
 local GITHUB_USER = "Onlygummy"
 local GITHUB_REPO = "66SIX"
-local GITHUB_BRANCH = "develop" -- <-- เปลี่ยน branch ที่นี่ (เช่น "main" หรือ "develop")
+local GITHUB_BRANCH = "main" -- <-- เปลี่ยน branch ที่นี่ (เช่น "main" หรือ "develop")
 -- =================================================================== --
 
 -- ตัวแปรป้องกัน Cache และสร้าง Base URL
