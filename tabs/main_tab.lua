@@ -304,12 +304,11 @@ return function(Tab, Window, WindUI)
         if isAutoDescending then
             if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
                 local targetRootPart = selectedPlayer.Character.HumanoidRootPart
-                local targetY = targetRootPart.Position.Y - 12
+                local targetY = targetRootPart.Position.Y - 12 -- Dynamic target Y
                 if rootPart.Position.Y > targetY then
                     moveDir = moveDir + Vector3.new(0, -1, 0)
                 else
-                    isAutoDescending = false
-                    WindUI:Notify({ Title = "ติดตาม", Content = "ถึงระดับความสูงเป้าหมายแล้ว", Icon = "check" })
+                    isAutoDescending = false -- Stop auto-descent once target Y is reached
                 end
             else
                 isAutoDescending = false
@@ -364,6 +363,9 @@ return function(Tab, Window, WindUI)
                     isFollowModeActive = false
                     return
                 end
+                
+                -- Store original CFrame for snap-back
+                originalFollowCFrame = rootPart.CFrame
 
                 -- Activate states
                 isAutoDescending = true
@@ -420,6 +422,12 @@ return function(Tab, Window, WindUI)
 
                 if originalCameraCFrame then Camera.CFrame = originalCameraCFrame end
                 Camera.CameraType = Enum.CameraType.Custom
+
+                -- Snap back to original position
+                if originalFollowCFrame and rootPart and rootPart.Parent then
+                    rootPart.CFrame = originalFollowCFrame
+                    originalFollowCFrame = nil
+                end
 
                 WindUI:Notify({ Title = "ติดตาม", Content = "ปิดใช้งานแล้ว", Icon = "user-x" })
             end
