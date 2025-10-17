@@ -307,69 +307,211 @@ return function(Tab, Window, WindUI)
 
         
 
-            local function updateFlyMovement()
-
-                if not isFlyEnabled or not LocalPlayer.Character then return end
-
-                local rootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-
-                if not rootPart or not workspace.CurrentCamera then return end
-
-                
-
-                local moveDir = Vector3.new(0, 0, 0)
+                    local function updateFlyMovement()
 
         
 
-                -- Handle auto-descent
+                        if not isFlyEnabled or not LocalPlayer.Character then return end
 
-                if isAutoDescending then
+        
 
-                    if rootPart.Position.Y > -12 then
+                        local rootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 
-                        moveDir = moveDir + Vector3.new(0, -1, 0) -- Force downward movement
+        
 
-                    else
+                        if not rootPart or not workspace.CurrentCamera then return end
 
-                        isAutoDescending = false -- Stop auto-descent once target Y is reached
+        
 
-                        WindUI:Notify({ Title = "ติดตาม", Content = "ถึงระดับ Y=-12 แล้ว", Icon = "check" })
+                        
+
+        
+
+                        local moveDir = Vector3.new(0, 0, 0)
+
+        
+
+                
+
+        
+
+                        -- Handle auto-descent to target's Y - 12
+
+        
+
+                        if isAutoDescending then
+
+        
+
+                            if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
+
+        
+
+                                local targetRootPart = selectedPlayer.Character.HumanoidRootPart
+
+        
+
+                                local targetY = targetRootPart.Position.Y - 12 -- Dynamic target Y
+
+        
+
+                
+
+        
+
+                                if rootPart.Position.Y > targetY then
+
+        
+
+                                    moveDir = moveDir + Vector3.new(0, -1, 0) -- Force downward movement
+
+        
+
+                                else
+
+        
+
+                                    isAutoDescending = false -- Stop auto-descent once target Y is reached
+
+        
+
+                                    WindUI:Notify({ Title = "ติดตาม", Content = "ถึงระดับความสูงเป้าหมายแล้ว", Icon = "check" })
+
+        
+
+                                end
+
+        
+
+                            else
+
+        
+
+                                isAutoDescending = false 
+
+        
+
+                                WindUI:Notify({ Title = "ติดตาม", Content = "กรุณาเลือกเป้าหมายเพื่อเริ่มเคลื่อนที่ลง", Icon = "alert-triangle" })
+
+        
+
+                            end
+
+        
+
+                        else
+
+        
+
+                            -- Auto-follow logic (runs after auto-descent is false)
+
+        
+
+                            if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
+
+        
+
+                                local targetRootPart = selectedPlayer.Character.HumanoidRootPart
+
+        
+
+                                local direction = targetRootPart.Position - rootPart.Position
+
+        
+
+                                local horizontalDirection = Vector3.new(direction.X, 0, direction.Z)
+
+        
+
+                
+
+        
+
+                                -- Only move if distance is greater than 7 studs
+
+        
+
+                                if horizontalDirection.Magnitude > 7 then
+
+        
+
+                                    moveDir = moveDir + horizontalDirection
+
+        
+
+                                end
+
+        
+
+                            end
+
+        
+
+                        end
+
+        
+
+                
+
+        
+
+                        -- Add user WASD controls
+
+        
+
+                        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + workspace.CurrentCamera.CFrame.LookVector end
+
+        
+
+                        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - workspace.CurrentCamera.CFrame.LookVector end
+
+        
+
+                        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - workspace.CurrentCamera.CFrame.RightVector end
+
+        
+
+                        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + workspace.CurrentCamera.CFrame.RightVector end
+
+        
+
+                
+
+        
+
+                        -- Set final velocity (normalized for consistent speed)
+
+        
+
+                        if moveDir.Magnitude > 0 then
+
+        
+
+                            bodyVelocity.Velocity = moveDir.Unit * flySpeed
+
+        
+
+                        else
+
+        
+
+                            bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+
+        
+
+                        end
+
+        
+
+                        
+
+        
+
+                        bodyGyro.CFrame = workspace.CurrentCamera.CFrame
+
+        
 
                     end
-
-                end
-
-        
-
-                -- Add user WASD controls
-
-                if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + workspace.CurrentCamera.CFrame.LookVector end
-
-                if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - workspace.CurrentCamera.CFrame.LookVector end
-
-                if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - workspace.CurrentCamera.CFrame.RightVector end
-
-                if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + workspace.CurrentCamera.CFrame.RightVector end
-
-        
-
-                -- Set final velocity (normalized for consistent speed)
-
-                if moveDir.Magnitude > 0 then
-
-                    bodyVelocity.Velocity = moveDir.Unit * flySpeed
-
-                else
-
-                    bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-
-                end
-
-                
-
-                bodyGyro.CFrame = workspace.CurrentCamera.CFrame
-
-            end
 
         
 
