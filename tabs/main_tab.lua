@@ -23,7 +23,7 @@ return function(Tab, Window, WindUI)
 
     local isFollowing = false
     local followLoop = nil
-    local bodyVelocity, bodyGyro, bodyPosition
+    local bodyVelocity, bodyPosition
 
     -- Forward-declare UI elements and functions
     local playerDropdown
@@ -285,11 +285,6 @@ return function(Tab, Window, WindUI)
                 bodyVelocity.P = 2000
                 bodyVelocity.Parent = rootPart
 
-                bodyGyro = Instance.new("BodyGyro")
-                bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-                bodyGyro.P = 3000
-                bodyGyro.Parent = rootPart
-
                 bodyPosition = Instance.new("BodyPosition")
                 bodyPosition.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
                 bodyPosition.P = 20000 -- Strong P to maintain position
@@ -330,9 +325,8 @@ return function(Tab, Window, WindUI)
                     end
                     -- Move our character using BodyVelocity for X/Z and BodyPosition for Y
                     local targetPositionForBodyMovers = Vector3.new(targetRootPart.Position.X, -12, targetRootPart.Position.Z)
-                    bodyVelocity.Velocity = (Vector3.new(targetRootPart.Position.X, rootPart.Position.Y, targetRootPart.Position.Z) - rootPart.Position).Unit * 50 -- Only X/Z movement
+                    bodyVelocity.Velocity = Vector3.new(targetRootPart.Velocity.X, 0, targetRootPart.Velocity.Z) -- Match target's X/Z velocity
                     bodyPosition.Position = Vector3.new(rootPart.Position.X, -12, rootPart.Position.Z) -- Y-lock
-                    bodyGyro.CFrame = targetRootPart.CFrame -- Align with target's orientation
                 end)
 
                 WindUI:Notify({ Title = "ติดตาม", Content = "เปิดใช้งานโหมดติดตาม", Icon = "user-check" })
@@ -351,7 +345,6 @@ return function(Tab, Window, WindUI)
 
                 -- Destroy BodyMovers
                 if bodyVelocity then bodyVelocity:Destroy(); bodyVelocity = nil end
-                if bodyGyro then bodyGyro:Destroy(); bodyGyro = nil end
                 if bodyPosition then bodyPosition:Destroy(); bodyPosition = nil end
 
                 -- Restore camera
