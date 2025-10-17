@@ -287,7 +287,7 @@ return function(Tab, Window, WindUI)
 
                 bodyPosition = Instance.new("BodyPosition")
                 bodyPosition.MaxForce = Vector3.new(0, math.huge, 0) -- Only affect Y-axis
-                bodyPosition.P = 25000 -- Strong P to maintain position
+                bodyPosition.P = 40000 -- Strong P to maintain position
                 bodyPosition.D = 3000 -- Damping
                 bodyPosition.Parent = rootPart
 
