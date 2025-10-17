@@ -23,6 +23,7 @@ local baseURL = string.format("https://raw.githubusercontent.com/%s/%s/%s/", GIT
 local WindUI_URL = baseURL .. "windui.lua?v=" .. cacheBuster
 local MainTab_URL = baseURL .. "tabs/main_tab.lua?v=" .. cacheBuster
 local SettingsTab_URL = baseURL .. "tabs/settings_tab.lua?v=" .. cacheBuster
+local PositionTab_URL = baseURL .. "tabs/position_tab.lua?v=" .. cacheBuster
 
 -- =================================================================== --
 --      หมายเหตุ: หาก Executor ของคุณรองรับ readfile() หรือ loadfile()
@@ -38,6 +39,7 @@ local SettingsTab_URL = baseURL .. "tabs/settings_tab.lua?v=" .. cacheBuster
 local WindUI = loadstring(game:HttpGet(WindUI_URL))()
 local MainTabModule = loadstring(game:HttpGet(MainTab_URL))()
 local SettingsTabModule = loadstring(game:HttpGet(SettingsTab_URL))()
+local PositionTabModule = loadstring(game:HttpGet(PositionTab_URL))()
 
 -- สร้างหน้าต่างหลัก (Window)
 local Window = WindUI:CreateWindow({
@@ -61,6 +63,11 @@ local SettingsTab = Window:Tab({
     Icon = "settings"
 })
 
+local PositionTab = Window:Tab({
+    Title = "ตำแหน่ง",
+    Icon = "map-pin"
+})
+
 -- =================================================================== --
 --      (ส่วนของแท็บเฉพาะแมพถูกย้ายไปรวมใน main_tab.lua แล้ว)
 -- =================================================================== --
@@ -68,6 +75,7 @@ local SettingsTab = Window:Tab({
 -- เรียกใช้ Module เพื่อสร้าง UI ในแท็บหลัก
 MainTabModule(MainTab, Window, WindUI)
 SettingsTabModule(SettingsTab, Window, WindUI)
+PositionTabModule(PositionTab, Window, WindUI)
 
 -- เลือกให้แท็บ "หน้าหลัก" แสดงผลเป็นค่าเริ่มต้น
 MainTab:Select()

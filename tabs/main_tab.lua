@@ -21,6 +21,10 @@ return function(Tab, Window, WindUI)
     local isWPressed, isAPressed, isSPressed, isDPressed = false, false, false, false
     local targetLostDebounce = false
 
+    local isFollowing = false
+    local followLoop = nil
+    local bodyVelocity, bodyPosition
+
     -- Forward-declare UI elements and functions
     local playerDropdown
     local statusParagraph
@@ -161,6 +165,8 @@ return function(Tab, Window, WindUI)
                 restoreCamera()
             end
         end
+
+
     end)
 
     -- ================================= --
@@ -251,7 +257,182 @@ return function(Tab, Window, WindUI)
         end
     })
 
-    -- ================================= --
+    -- Combined Spy/Follow God Mode implementation
+    local flySpeed = 50
+    local isFollowModeActive = false
+    local bodyVelocity, bodyGyro
+    local followAndCameraLoop, noclipLoop
+    local isAutoDescending = false
+
+    local function setupFlyMovers()
+        if not bodyVelocity then
+            bodyVelocity = Instance.new("BodyVelocity")
+            bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+            bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        end
+        if not bodyGyro then
+            bodyGyro = Instance.new("BodyGyro")
+            bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+        end
+    end
+
+    local function updateFollowAndCamera()
+        if not isFollowModeActive then return end
+
+        -- Part 1: Update Camera (from original spy logic)
+        if isCameraMode and cameraTarget and cameraTarget.Character and cameraTarget.Character:FindFirstChild("Head") then
+            Camera.CameraType = Enum.CameraType.Scriptable
+            if Camera.CameraType ~= Enum.CameraType.Scriptable then Camera.CameraType = Enum.CameraType.Scriptable end
+            UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+
+            local targetPos = cameraTarget.Character.Head.Position
+            if isWPressed then pitch = math.clamp(pitch - cameraSpeed, -math.pi / 3, math.pi / 3) end
+            if isSPressed then pitch = math.clamp(pitch + cameraSpeed, -math.pi / 3, math.pi / 3) end
+            if isAPressed then yaw = yaw + cameraSpeed end
+            if isDPressed then yaw = yaw - cameraSpeed end
+
+            local cameraPos = targetPos + CFrame.Angles(0, yaw, 0) * CFrame.Angles(pitch, 0, 0) * Vector3.new(0, 5, zoomDistance)
+            Camera.CFrame = CFrame.new(cameraPos, targetPos)
+        end
+
+        -- Part 2: Update Player Movement (fully automatic)
+        local rootPart = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not rootPart or not rootPart.Parent then return end
+
+        local moveDir = Vector3.new(0, 0, 0)
+
+        if isAutoDescending then
+            if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local targetRootPart = selectedPlayer.Character.HumanoidRootPart
+                local targetY = targetRootPart.Position.Y - 12 -- Dynamic target Y
+                if rootPart.Position.Y > targetY then
+                    moveDir = moveDir + Vector3.new(0, -1, 0)
+                else
+                    isAutoDescending = false -- Stop auto-descent once target Y is reached
+                end
+            else
+                isAutoDescending = false
+            end
+        else -- Auto-follow logic
+            if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local targetRootPart = selectedPlayer.Character.HumanoidRootPart
+                local direction = targetRootPart.Position - rootPart.Position
+                local horizontalDirection = Vector3.new(direction.X, 0, direction.Z)
+                if horizontalDirection.Magnitude > 7 then
+                    moveDir = moveDir + horizontalDirection
+                end
+            end
+        end
+
+        if moveDir.Magnitude > 0 then
+            bodyVelocity.Velocity = moveDir.Unit * flySpeed
+        else
+            bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        end
+
+        if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character.PrimaryPart then
+            local targetPos = selectedPlayer.Character.PrimaryPart.Position
+            local lookAtPos = Vector3.new(targetPos.X, rootPart.Position.Y, targetPos.Z)
+            bodyGyro.CFrame = CFrame.new(rootPart.Position, lookAtPos)
+        end
+    end
+
+    local followToggle
+    followToggle = ActionSection:Toggle({
+        Title = "ติดตาม",
+        Icon = "user-check",
+        Callback = function(value)
+            isFollowModeActive = value
+            local char = LocalPlayer.Character
+            if not char then return end
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            local rootPart = char:FindFirstChild("HumanoidRootPart")
+
+            if value then
+                if not selectedPlayer or not selectedPlayer.Character then
+                    WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกเป้าหมายก่อน", Icon = "x" })
+                    task.wait()
+                    followToggle:SetValue(false)
+                    isFollowModeActive = false
+                    return
+                end
+                if not humanoid or not rootPart then
+                     WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "ไม่พบตัวละคร", Icon = "x" })
+                    task.wait()
+                    followToggle:SetValue(false)
+                    isFollowModeActive = false
+                    return
+                end
+                
+                -- Store original CFrame for snap-back
+                originalFollowCFrame = rootPart.CFrame
+
+                -- Activate states
+                isAutoDescending = true
+                isCameraMode = true
+
+                -- Activate God Mode
+                setupFlyMovers()
+                bodyVelocity.Parent = rootPart
+                bodyGyro.Parent = rootPart
+                humanoid.PlatformStand = true
+                noclipLoop = RunService.Stepped:Connect(function() setNoclip(true) end)
+
+                -- Activate Spy Camera
+                originalCameraCFrame = Camera.CFrame
+                cameraTarget = selectedPlayer
+                yaw, pitch, zoomDistance = 0, 0, 10
+                local function createKeybind(name, key) 
+                    ContextActionService:BindActionAtPriority(name, function(_, s) 
+                        if UserInputService:GetFocusedTextBox() then return Enum.ContextActionResult.Pass end
+                        if name == "SpyCameraControlW" then isWPressed = (s == Enum.UserInputState.Begin) end
+                        if name == "SpyCameraControlA" then isAPressed = (s == Enum.UserInputState.Begin) end
+                        if name == "SpyCameraControlS" then isSPressed = (s == Enum.UserInputState.Begin) end
+                        if name == "SpyCameraControlD" then isDPressed = (s == Enum.UserInputState.Begin) end
+                        return Enum.ContextActionResult.Sink 
+                    end, false, 2001, key)
+                end
+                createKeybind("SpyCameraControlW", Enum.KeyCode.W)
+                createKeybind("SpyCameraControlA", Enum.KeyCode.A)
+                createKeybind("SpyCameraControlS", Enum.KeyCode.S)
+                createKeybind("SpyCameraControlD", Enum.KeyCode.D)
+
+                -- Start combined loop
+                if followAndCameraLoop then followAndCameraLoop:Disconnect() end
+                followAndCameraLoop = RunService.RenderStepped:Connect(updateFollowAndCamera)
+                
+                WindUI:Notify({ Title = "ติดตาม", Content = "เปิดใช้งานโหมดติดตามอัตโนมัติ", Icon = "user-check" })
+            else
+                -- Deactivate everything
+                isAutoDescending = false
+                isCameraMode = false
+
+                if followAndCameraLoop then followAndCameraLoop:Disconnect(); followAndCameraLoop = nil end
+                if noclipLoop then noclipLoop:Disconnect(); noclipLoop = nil end
+
+                if bodyVelocity then bodyVelocity.Parent = nil end
+                if bodyGyro then bodyGyro.Parent = nil end
+                if humanoid then humanoid.PlatformStand = false end
+                setNoclip(false)
+
+                ContextActionService:UnbindAction("SpyCameraControlW")
+                ContextActionService:UnbindAction("SpyCameraControlA")
+                ContextActionService:UnbindAction("SpyCameraControlS")
+                ContextActionService:UnbindAction("SpyCameraControlD")
+
+                if originalCameraCFrame then Camera.CFrame = originalCameraCFrame end
+                Camera.CameraType = Enum.CameraType.Custom
+
+                -- Snap back to original position
+                if originalFollowCFrame and rootPart and rootPart.Parent then
+                    rootPart.CFrame = originalFollowCFrame
+                    originalFollowCFrame = nil
+                end
+
+                WindUI:Notify({ Title = "ติดตาม", Content = "ปิดใช้งานแล้ว", Icon = "user-x" })
+            end
+        end
+    })    -- ================================= --
     --      Map-Specific Section (God Mode ADDED BACK)
     -- ================================= --
     local BANNATOWN_PLACE_ID = 77837537595343
@@ -322,8 +503,13 @@ return function(Tab, Window, WindUI)
             Value = false,
             Callback = function(value) setFly(value) end
         })
+
+
+
     end
 
     -- Initial population of the player list
     refreshPlayerList()
+
+
 end
