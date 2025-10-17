@@ -21,6 +21,10 @@ return function(Tab, Window, WindUI)
     local isWPressed, isAPressed, isSPressed, isDPressed = false, false, false, false
     local targetLostDebounce = false
 
+    local isFollowing = false
+    local followLoop = nil
+    local originalFollowCFrame = nil
+
     -- Forward-declare UI elements and functions
     local playerDropdown
     local statusParagraph
@@ -253,6 +257,75 @@ return function(Tab, Window, WindUI)
         end
     })
 
+    local followToggle
+    followToggle = ActionSection:Toggle({
+        Title = "ติดตาม",
+        Icon = "user-check",
+        Callback = function(value)
+            if value then
+                if not selectedPlayer then
+                    WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกเป้าหมายก่อน", Icon = "x" })
+                    task.wait() -- Allow notification to show
+                    followToggle:SetValue(false)
+                    return
+                end
+
+                if not moveCameraToPlayer(selectedPlayer) then
+                    WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "ไม่สามารถเริ่มโหมดส่องได้", Icon = "x" })
+                    task.wait()
+                    followToggle:SetValue(false)
+                    return
+                end
+
+                isFollowing = true
+                local char = LocalPlayer.Character
+                local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+                local rootPart = humanoid and char:FindFirstChild("HumanoidRootPart")
+
+                if not rootPart then return end
+
+                originalFollowCFrame = rootPart.CFrame
+                setNoclip(true)
+                humanoid.PlatformStand = true
+
+                followLoop = RunService.RenderStepped:Connect(function()
+                    local targetRootPart = selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if not targetRootPart or not rootPart or not rootPart.Parent then
+                        -- Stop if target is lost
+                        followToggle:SetValue(false)
+                        return
+                    end
+                    rootPart.CFrame = CFrame.new(targetRootPart.Position.X, -12, targetRootPart.Position.Z)
+                end)
+
+            else
+                if isFollowing then
+                    isFollowing = false
+                    if followLoop then
+                        followLoop:Disconnect()
+                        followLoop = nil
+                    end
+
+                    restoreCamera() -- This handles re-enabling controls
+
+                    local char = LocalPlayer.Character
+                    local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+                    local rootPart = humanoid and char:FindFirstChild("HumanoidRootPart")
+
+                    setNoclip(false)
+                    if humanoid then
+                        humanoid.PlatformStand = false
+                    end
+
+                    if originalFollowCFrame and rootPart then
+                        rootPart.CFrame = originalFollowCFrame
+                        originalFollowCFrame = nil
+                    end
+                end
+            end
+        end
+    })
+
     -- ================================= --
     --      Map-Specific Section (God Mode ADDED BACK)
     -- ================================= --
@@ -325,47 +398,7 @@ return function(Tab, Window, WindUI)
             Callback = function(value) setFly(value) end
         })
 
-        local isNewGodModeActive = false
-        local originalCFrame = nil
-        local newGodModeLoop = nil
 
-        BannaTownSection:Toggle({
-            Title = "New",
-            Value = false,
-            Callback = function(value)
-                isNewGodModeActive = value
-                local char = LocalPlayer.Character
-                if not char then return end
-                local humanoid = char:FindFirstChildOfClass("Humanoid")
-                local rootPart = char:FindFirstChild("HumanoidRootPart")
-                if not humanoid or not rootPart then return end
-
-                if value then
-                    originalCFrame = rootPart.CFrame
-                    setNoclip(true)
-                    humanoid.PlatformStand = true
-
-                    newGodModeLoop = RunService.RenderStepped:Connect(function()
-                        if rootPart and rootPart.Parent then
-                            rootPart.Position = Vector3.new(rootPart.Position.X, -12, rootPart.Position.Z)
-                        end
-                    end)
-                    WindUI:Notify({ Title = "New God Mode", Content = "เปิดใช้งาน", Icon = "feather" })
-                else
-                    if newGodModeLoop then
-                        newGodModeLoop:Disconnect()
-                        newGodModeLoop = nil
-                    end
-                    setNoclip(false)
-                    humanoid.PlatformStand = false
-                    if originalCFrame then
-                        rootPart.CFrame = originalCFrame
-                        originalCFrame = nil
-                    end
-                    WindUI:Notify({ Title = "New God Mode", Content = "ปิดใช้งาน", Icon = "feather" })
-                end
-            end
-        })
 
     end
 
