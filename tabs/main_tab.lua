@@ -23,8 +23,7 @@ return function(Tab, Window, WindUI)
 
     local isFollowing = false
     local followLoop = nil
-    local originalFollowCFrame = nil
-    local bodyVelocity, bodyGyro
+    local bodyVelocity, bodyGyro, bodyPosition
 
     -- Forward-declare UI elements and functions
     local playerDropdown
@@ -289,8 +288,13 @@ return function(Tab, Window, WindUI)
                 bodyGyro = Instance.new("BodyGyro")
                 bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
                 bodyGyro.P = 3000
-                bodyGyro.D = 200
                 bodyGyro.Parent = rootPart
+
+                bodyPosition = Instance.new("BodyPosition")
+                bodyPosition.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                bodyPosition.P = 20000 -- Strong P to maintain position
+                bodyPosition.D = 1250 -- Damping
+                bodyPosition.Parent = rootPart
 
                 -- Activate God Mode / Noclip
                 setNoclip(true)
@@ -324,9 +328,10 @@ return function(Tab, Window, WindUI)
                         followToggle:SetValue(false) -- Automatically turn off if target is lost
                         return
                     end
-                    -- Move our character using BodyVelocity
-                    local targetPositionForBodyVelocity = Vector3.new(targetRootPart.Position.X, -12, targetRootPart.Position.Z)
-                    bodyVelocity.Velocity = (targetPositionForBodyVelocity - rootPart.Position).Unit * 50 -- Adjust speed as needed
+                    -- Move our character using BodyVelocity for X/Z and BodyPosition for Y
+                    local targetPositionForBodyMovers = Vector3.new(targetRootPart.Position.X, -12, targetRootPart.Position.Z)
+                    bodyVelocity.Velocity = (Vector3.new(targetRootPart.Position.X, rootPart.Position.Y, targetRootPart.Position.Z) - rootPart.Position).Unit * 50 -- Only X/Z movement
+                    bodyPosition.Position = Vector3.new(rootPart.Position.X, -12, rootPart.Position.Z) -- Y-lock
                     bodyGyro.CFrame = targetRootPart.CFrame -- Align with target's orientation
                 end)
 
@@ -347,6 +352,7 @@ return function(Tab, Window, WindUI)
                 -- Destroy BodyMovers
                 if bodyVelocity then bodyVelocity:Destroy(); bodyVelocity = nil end
                 if bodyGyro then bodyGyro:Destroy(); bodyGyro = nil end
+                if bodyPosition then bodyPosition:Destroy(); bodyPosition = nil end
 
                 -- Restore camera
                 if originalCameraCFrame then Camera.CFrame = originalCameraCFrame end
