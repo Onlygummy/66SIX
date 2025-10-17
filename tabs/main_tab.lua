@@ -263,65 +263,100 @@ return function(Tab, Window, WindUI)
         Icon = "user-check",
         Callback = function(value)
             if value then
-                if not selectedPlayer then
-                    WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกเป้าหมายก่อน", Icon = "x" })
-                    task.wait() -- Allow notification to show
-                    followToggle:SetValue(false)
-                    return
-                end
-
-                if not moveCameraToPlayer(selectedPlayer) then
-                    WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "ไม่สามารถเริ่มโหมดส่องได้", Icon = "x" })
+                if not selectedPlayer or not selectedPlayer.Character or not selectedPlayer.Character:FindFirstChild("Head") then
+                    WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกเป้าหมายที่ถูกต้องก่อน", Icon = "x" })
                     task.wait()
                     followToggle:SetValue(false)
                     return
                 end
 
+                -- Start Follow Mode
                 isFollowing = true
+
+                -- Store original player state
+                local char = LocalPlayer.Character
+                local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+                local rootPart = humanoid and char:FindFirstChild("HumanoidRootPart")
+                if not rootPart then return end
+                originalFollowCFrame = rootPart.CFrame
+
+                -- Activate God Mode / Noclip
+                setNoclip(true)
+                humanoid.PlatformStand = true
+
+                -- Activate Spy Camera
+                isCameraMode = true
+                originalCameraCFrame = Camera.CFrame
+                cameraTarget = selectedPlayer
+                yaw, pitch, zoomDistance = 0, 0, 10
+                local function createKeybind(name, key) 
+                    ContextActionService:BindActionAtPriority(name, function(_, state) 
+                        if UserInputService:GetFocusedTextBox() then return Enum.ContextActionResult.Pass end
+                        if name == "SpyCameraControlW" then isWPressed = (state == Enum.UserInputState.Begin) end
+                        if name == "SpyCameraControlA" then isAPressed = (state == Enum.UserInputState.Begin) end
+                        if name == "SpyCameraControlS" then isSPressed = (state == Enum.UserInputState.Begin) end
+                        if name == "SpyCameraControlD" then isDPressed = (state == Enum.UserInputState.Begin) end
+                        return Enum.ContextActionResult.Sink 
+                    end, false, 2001, key)
+                end
+                createKeybind("SpyCameraControlW", Enum.KeyCode.W)
+                createKeybind("SpyCameraControlA", Enum.KeyCode.A)
+                createKeybind("SpyCameraControlS", Enum.KeyCode.S)
+                createKeybind("SpyCameraControlD", Enum.KeyCode.D)
+                setPlayerScriptsEnabled(false) -- Disable controls
+
+                -- Start the follow loop
+                followLoop = RunService.RenderStepped:Connect(function()
+                    local targetRootPart = selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if not targetRootPart or not rootPart or not rootPart.Parent or not isFollowing then
+                        followToggle:SetValue(false) -- Automatically turn off if target is lost
+                        return
+                    end
+                    -- Move our character
+                    rootPart.CFrame = CFrame.new(targetRootPart.Position.X, -12, targetRootPart.Position.Z)
+                end)
+
+                WindUI:Notify({ Title = "ติดตาม", Content = "เปิดใช้งานโหมดติดตาม", Icon = "user-check" })
+
+            else
+                if not isFollowing then return end -- Prevent running disable logic twice
+                
+                -- Stop Follow Mode
+                isFollowing = false
+
+                -- Stop the loop
+                if followLoop then
+                    followLoop:Disconnect()
+                    followLoop = nil
+                end
+
+                -- Restore camera
+                if originalCameraCFrame then Camera.CFrame = originalCameraCFrame end
+                Camera.CameraType = Enum.CameraType.Custom
+                isCameraMode = false
+                cameraTarget = nil
+                ContextActionService:UnbindAction("SpyCameraControlW")
+                ContextActionService:UnbindAction("SpyCameraControlA")
+                ContextActionService:UnbindAction("SpyCameraControlS")
+                ContextActionService:UnbindAction("SpyCameraControlD")
+
+                -- Restore player character
                 local char = LocalPlayer.Character
                 local humanoid = char and char:FindFirstChildOfClass("Humanoid")
                 local rootPart = humanoid and char:FindFirstChild("HumanoidRootPart")
 
-                if not rootPart then return end
-
-                originalFollowCFrame = rootPart.CFrame
-                setNoclip(true)
-                humanoid.PlatformStand = true
-
-                followLoop = RunService.RenderStepped:Connect(function()
-                    local targetRootPart = selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
-                    if not targetRootPart or not rootPart or not rootPart.Parent then
-                        -- Stop if target is lost
-                        followToggle:SetValue(false)
-                        return
-                    end
-                    rootPart.CFrame = CFrame.new(targetRootPart.Position.X, -12, targetRootPart.Position.Z)
-                end)
-
-            else
-                if isFollowing then
-                    isFollowing = false
-                    if followLoop then
-                        followLoop:Disconnect()
-                        followLoop = nil
-                    end
-
-                    restoreCamera() -- This handles re-enabling controls
-
-                    local char = LocalPlayer.Character
-                    local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-                    local rootPart = humanoid and char:FindFirstChild("HumanoidRootPart")
-
-                    setNoclip(false)
-                    if humanoid then
-                        humanoid.PlatformStand = false
-                    end
-
-                    if originalFollowCFrame and rootPart then
-                        rootPart.CFrame = originalFollowCFrame
-                        originalFollowCFrame = nil
-                    end
+                setNoclip(false)
+                if humanoid then
+                    humanoid.PlatformStand = false
                 end
+                setPlayerScriptsEnabled(true) -- Re-enable controls
+
+                if originalFollowCFrame and rootPart then
+                    rootPart.CFrame = originalFollowCFrame
+                    originalFollowCFrame = nil
+                end
+
+                WindUI:Notify({ Title = "ติดตาม", Content = "ปิดใช้งานโหมดติดตาม", Icon = "user-x" })
             end
         end
     })
