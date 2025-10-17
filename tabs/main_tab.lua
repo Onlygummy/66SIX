@@ -245,18 +245,6 @@ return function(Tab, Window, WindUI)
         end
     })
 
-    ActionSection:Button({
-        Title = "เทเลพอร์ต",
-        Icon = "send",
-        Callback = function()
-            if selectedPlayer then
-                teleportToPlayer(selectedPlayer)
-            else
-                WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกเป้าหมายก่อน", Icon = "x" })
-            end
-        end
-    })
-
     -- Combined Spy/Follow God Mode implementation
     local flySpeed = 50
     local isFollowModeActive = false
@@ -432,6 +420,17 @@ return function(Tab, Window, WindUI)
                 WindUI:Notify({ Title = "ติดตาม", Content = "ปิดใช้งานแล้ว", Icon = "user-x" })
             end
         end
+    })
+    ActionSection:Button({
+        Title = "เทเลพอร์ต",
+        Icon = "send",
+        Callback = function()
+            if selectedPlayer then
+                teleportToPlayer(selectedPlayer)
+            else
+                WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกเป้าหมายก่อน", Icon = "x" })
+            end
+        end
     })    -- ================================= --
     --      Map-Specific Section (God Mode ADDED BACK)
     -- ================================= --
@@ -486,7 +485,7 @@ return function(Tab, Window, WindUI)
                 if noclipLoop then noclipLoop:Disconnect() end
                 flyLoop = RunService.RenderStepped:Connect(updateFlyMovement)
                 noclipLoop = RunService.Stepped:Connect(function() setNoclip(true) end)
-                WindUI:Notify({ Title = "God Mode", Content = "เปิดใช้งาน", Icon = "feather" })
+                WindUI:Notify({ Title = "พระเจ้า", Content = "เปิดใช้งาน", Icon = "feather" })
             else
                 if bodyVelocity then bodyVelocity.Parent = nil end
                 if bodyGyro then bodyGyro.Parent = nil end
@@ -494,12 +493,12 @@ return function(Tab, Window, WindUI)
                 if flyLoop then flyLoop:Disconnect(); flyLoop = nil end
                 if noclipLoop then noclipLoop:Disconnect(); noclipLoop = nil end
                 setNoclip(false)
-                WindUI:Notify({ Title = "God Mode", Content = "ปิดใช้งาน", Icon = "feather" })
+                WindUI:Notify({ Title = "พระเจ้า", Content = "ปิดใช้งาน", Icon = "feather" })
             end
         end
         
         BannaTownSection:Toggle({
-            Title = "God Mode",
+            Title = "พระเจ้า",
             Value = false,
             Callback = function(value) setFly(value) end
         })
