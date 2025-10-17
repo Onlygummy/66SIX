@@ -257,14 +257,113 @@ return function(Tab, Window, WindUI)
         end
     })
 
-                            local followToggle
-                            followToggle = ActionSection:Toggle({
-                                Title = "ติดตาม",
-                                Icon = "user-check",
-                                Callback = function(value)
-                                    -- Logic for follow mode will be re-implemented here
-                                end
-                            })    -- ================================= --
+                                        local followToggle
+
+                                        followToggle = ActionSection:Toggle({
+
+                                            Title = "ติดตาม",
+
+                                            Icon = "user-check",
+
+                                            Callback = function(value)
+
+                                                if value then
+
+                                                    -- When turned ON
+
+                                                    local char = LocalPlayer.Character
+
+                                                    local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+
+                                                    local rootPart = char and char:FindFirstChild("HumanoidRootPart")
+
+                            
+
+                                                    if not humanoid or not rootPart then
+
+                                                        WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "ไม่พบตัวละครของคุณ", Icon = "x" })
+
+                                                        task.wait()
+
+                                                        followToggle:SetValue(false)
+
+                                                        return
+
+                                                    end
+
+                            
+
+                                                    isFollowing = true -- Use the state variable
+
+                                                    humanoid.PlatformStand = true -- Prevent gravity and other physics
+
+                            
+
+                                                    followLoop = RunService.RenderStepped:Connect(function()
+
+                                                        if not isFollowing or not rootPart.Parent then
+
+                                                            if followLoop then
+
+                                                                followLoop:Disconnect()
+
+                                                                followLoop = nil
+
+                                                            end
+
+                                                            return
+
+                                                        end
+
+                                                        -- Keep forcing the Y position to -12, maintaining current X and Z
+
+                                                        local currentPos = rootPart.Position
+
+                                                        rootPart.CFrame = CFrame.new(currentPos.X, -12, currentPos.Z)
+
+                                                    end)
+
+                                                    
+
+                                                    WindUI:Notify({ Title = "ติดตาม", Content = "เปิดใช้งาน: ล็อกตำแหน่งที่ Y = -12", Icon = "user-check" })
+
+                            
+
+                                                else
+
+                                                    -- When turned OFF
+
+                                                    isFollowing = false
+
+                                                    if followLoop then
+
+                                                        followLoop:Disconnect()
+
+                                                        followLoop = nil
+
+                                                    end
+
+                            
+
+                                                    local char = LocalPlayer.Character
+
+                                                    local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+
+                                                    if humanoid then
+
+                                                        humanoid.PlatformStand = false -- Return control to normal physics
+
+                                                    end
+
+                            
+
+                                                    WindUI:Notify({ Title = "ติดตาม", Content = "ปิดใช้งาน", Icon = "user-x" })
+
+                                                end
+
+                                            end
+
+                                        })    -- ================================= --
     --      Map-Specific Section (God Mode ADDED BACK)
     -- ================================= --
     local BANNATOWN_PLACE_ID = 77837537595343
