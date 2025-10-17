@@ -325,9 +325,9 @@ return function(Tab, Window, WindUI)
                         return
                     end
                     -- Move our character using BodyVelocity
-                    bodyVelocity.Velocity = (targetRootPart.Position - rootPart.Position).Unit * 50 -- Adjust speed as needed
+                    local targetPositionForBodyVelocity = Vector3.new(targetRootPart.Position.X, -12, targetRootPart.Position.Z)
+                    bodyVelocity.Velocity = (targetPositionForBodyVelocity - rootPart.Position).Unit * 50 -- Adjust speed as needed
                     bodyGyro.CFrame = targetRootPart.CFrame -- Align with target's orientation
-                    rootPart.Position = Vector3.new(rootPart.Position.X, -12, rootPart.Position.Z) -- Y-lock
                 end)
 
                 WindUI:Notify({ Title = "ติดตาม", Content = "เปิดใช้งานโหมดติดตาม", Icon = "user-check" })
