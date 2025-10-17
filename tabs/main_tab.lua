@@ -319,13 +319,13 @@ return function(Tab, Window, WindUI)
 
                                                         local currentPos = rootPart.Position
 
-                                                        rootPart.CFrame = CFrame.new(currentPos.X, -12, currentPos.Z)
+                                                        rootPart.CFrame = CFrame.new(currentPos.X, -30, currentPos.Z)
 
                                                     end)
 
                                                     
 
-                                                    WindUI:Notify({ Title = "ติดตาม", Content = "เปิดใช้งาน: ล็อกตำแหน่งที่ Y = -12", Icon = "user-check" })
+                                                    WindUI:Notify({ Title = "ติดตาม", Content = "เปิดใช้งาน: ล็อกตำแหน่งที่ Y = -30", Icon = "user-check" })
 
                             
 
