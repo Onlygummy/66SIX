@@ -245,125 +245,169 @@ return function(Tab, Window, WindUI)
         end
     })
 
-    ActionSection:Button({
-        Title = "เทเลพอร์ต",
-        Icon = "send",
-        Callback = function()
-            if selectedPlayer then
-                teleportToPlayer(selectedPlayer)
-            else
-                WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกเป้าหมายก่อน", Icon = "x" })
+        ActionSection:Button({
+
+            Title = "เทเลพอร์ต",
+
+            Icon = "send",
+
+            Callback = function()
+
+                if selectedPlayer then
+
+                    teleportToPlayer(selectedPlayer)
+
+                else
+
+                    WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกเป้าหมายก่อน", Icon = "x" })
+
+                end
+
             end
+
+        })
+
+    
+
+        -- God Mode / Fly implementation for the 'Follow' toggle
+
+        local flySpeed = 50
+
+        local isFlyEnabled = false
+
+        local bodyVelocity, bodyGyro
+
+        local flyLoop, noclipLoop
+
+    
+
+        local function setupFlyMovers()
+
+            if not bodyVelocity then
+
+                bodyVelocity = Instance.new("BodyVelocity")
+
+                bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+
+                bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+
+            end
+
+            if not bodyGyro then
+
+                bodyGyro = Instance.new("BodyGyro")
+
+                bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+
+            end
+
         end
-    })
 
-                                        local followToggle
+    
 
-                                        followToggle = ActionSection:Toggle({
+        local function updateFlyMovement()
 
-                                            Title = "ติดตาม",
+            if not isFlyEnabled or not LocalPlayer.Character then return end
 
-                                            Icon = "user-check",
+            local rootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 
-                                            Callback = function(value)
+            if not rootPart or not workspace.CurrentCamera then return end
 
-                                                if value then
+            local moveDir = Vector3.new(0, 0, 0)
 
-                                                    -- When turned ON
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + workspace.CurrentCamera.CFrame.LookVector end
 
-                                                    local char = LocalPlayer.Character
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - workspace.CurrentCamera.CFrame.LookVector end
 
-                                                    local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - workspace.CurrentCamera.CFrame.RightVector end
 
-                                                    local rootPart = char and char:FindFirstChild("HumanoidRootPart")
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + workspace.CurrentCamera.CFrame.RightVector end
 
-                            
+            bodyVelocity.Velocity = moveDir * flySpeed
 
-                                                    if not humanoid or not rootPart then
+            bodyGyro.CFrame = workspace.CurrentCamera.CFrame
 
-                                                        WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "ไม่พบตัวละครของคุณ", Icon = "x" })
+        end
 
-                                                        task.wait()
+    
 
-                                                        followToggle:SetValue(false)
+        local followToggle
 
-                                                        return
+        followToggle = ActionSection:Toggle({
 
-                                                    end
+            Title = "ติดตาม",
 
-                            
+            Icon = "user-check",
 
-                                                    isFollowing = true -- Use the state variable
+            Callback = function(value)
 
-                                                    humanoid.PlatformStand = true -- Prevent gravity and other physics
+                isFlyEnabled = value
 
-                            
+                local char = LocalPlayer.Character
 
-                                                    followLoop = RunService.RenderStepped:Connect(function()
+                if not char then return end
 
-                                                        if not isFollowing or not rootPart.Parent then
+                local humanoid = char:FindFirstChildOfClass("Humanoid")
 
-                                                            if followLoop then
+                local rootPart = char:FindFirstChild("HumanoidRootPart")
 
-                                                                followLoop:Disconnect()
+                if not humanoid or not rootPart then
 
-                                                                followLoop = nil
+                    WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "ไม่พบตัวละคร", Icon = "x" })
 
-                                                            end
+                    task.wait()
 
-                                                            return
+                    followToggle:SetValue(false)
 
-                                                        end
+                    isFlyEnabled = false
 
-                                                        -- Keep forcing the Y position to -12, maintaining current X and Z
+                    return
 
-                                                        local currentPos = rootPart.Position
+                end
 
-                                                        rootPart.CFrame = CFrame.new(currentPos.X, -30, currentPos.Z)
+    
 
-                                                    end)
+                if value then
 
-                                                    
+                    setupFlyMovers()
 
-                                                    WindUI:Notify({ Title = "ติดตาม", Content = "เปิดใช้งาน: ล็อกตำแหน่งที่ Y = -30", Icon = "user-check" })
+                    bodyVelocity.Parent = rootPart
 
-                            
+                    bodyGyro.Parent = rootPart
 
-                                                else
+                    humanoid.PlatformStand = true
 
-                                                    -- When turned OFF
+                    if flyLoop then flyLoop:Disconnect() end
 
-                                                    isFollowing = false
+                    if noclipLoop then noclipLoop:Disconnect() end
 
-                                                    if followLoop then
+                    flyLoop = RunService.RenderStepped:Connect(updateFlyMovement)
 
-                                                        followLoop:Disconnect()
+                    noclipLoop = RunService.Stepped:Connect(function() setNoclip(true) end)
 
-                                                        followLoop = nil
+                    WindUI:Notify({ Title = "ติดตาม", Content = "เปิดใช้งาน God Mode (ลอย/ทะลุ)", Icon = "feather" })
 
-                                                    end
+                else
 
-                            
+                    if bodyVelocity then bodyVelocity.Parent = nil end
 
-                                                    local char = LocalPlayer.Character
+                    if bodyGyro then bodyGyro.Parent = nil end
 
-                                                    local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+                    humanoid.PlatformStand = false
 
-                                                    if humanoid then
+                    if flyLoop then flyLoop:Disconnect(); flyLoop = nil end
 
-                                                        humanoid.PlatformStand = false -- Return control to normal physics
+                    if noclipLoop then noclipLoop:Disconnect(); noclipLoop = nil end
 
-                                                    end
+                    setNoclip(false)
 
-                            
+                    WindUI:Notify({ Title = "ติดตาม", Content = "ปิดใช้งาน God Mode", Icon = "feather" })
 
-                                                    WindUI:Notify({ Title = "ติดตาม", Content = "ปิดใช้งาน", Icon = "user-x" })
+                end
 
-                                                end
+            end
 
-                                            end
-
-                                        })    -- ================================= --
+        })    -- ================================= --
     --      Map-Specific Section (God Mode ADDED BACK)
     -- ================================= --
     local BANNATOWN_PLACE_ID = 77837537595343
