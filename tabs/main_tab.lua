@@ -26,6 +26,7 @@ return function(Tab, Window, WindUI)
     local statusParagraph
     local spyButton
     local restoreCamera
+    local positionParagraph
 
     -- ================================= --
     --  Core Logic
@@ -159,6 +160,13 @@ return function(Tab, Window, WindUI)
             task.wait(3)
             if isCameraMode and (not cameraTarget or not cameraTarget.Character or not cameraTarget.Character:FindFirstChild("Head")) then
                 restoreCamera()
+            end
+        end
+
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local pos = LocalPlayer.Character.HumanoidRootPart.Position
+            if positionParagraph then
+                positionParagraph:SetDesc(string.format("X: %.2f, Y: %.2f, Z: %.2f", pos.X, pos.Y, pos.Z))
             end
         end
     end)
@@ -326,4 +334,16 @@ return function(Tab, Window, WindUI)
 
     -- Initial population of the player list
     refreshPlayerList()
+
+    -- Section 3: My Position
+    local MyPositionSection = Tab:Section({
+        Title = "ตำแหน่งของฉัน",
+        Icon = "map-pin",
+        Opened = true
+    })
+
+    positionParagraph = MyPositionSection:Paragraph({
+        Title = "พิกัด",
+        Desc = "X: 0, Y: 0, Z: 0"
+    })
 end
