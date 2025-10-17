@@ -24,6 +24,7 @@ return function(Tab, Window, WindUI)
     local isFollowing = false
     local followLoop = nil
     local originalFollowCFrame = nil
+    local bodyVelocity, bodyGyro
 
     -- Forward-declare UI elements and functions
     local playerDropdown
@@ -277,8 +278,19 @@ return function(Tab, Window, WindUI)
                 local char = LocalPlayer.Character
                 local humanoid = char and char:FindFirstChildOfClass("Humanoid")
                 local rootPart = humanoid and char:FindFirstChild("HumanoidRootPart")
-                if not rootPart then return end
                 originalFollowCFrame = rootPart.CFrame
+
+                -- Create BodyMovers
+                bodyVelocity = Instance.new("BodyVelocity")
+                bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                bodyVelocity.P = 2000
+                bodyVelocity.Parent = rootPart
+
+                bodyGyro = Instance.new("BodyGyro")
+                bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+                bodyGyro.P = 3000
+                bodyGyro.D = 200
+                bodyGyro.Parent = rootPart
 
                 -- Activate God Mode / Noclip
                 setNoclip(true)
@@ -312,8 +324,10 @@ return function(Tab, Window, WindUI)
                         followToggle:SetValue(false) -- Automatically turn off if target is lost
                         return
                     end
-                    -- Move our character
-                    rootPart.CFrame = CFrame.new(targetRootPart.Position.X, -12, targetRootPart.Position.Z)
+                    -- Move our character using BodyVelocity
+                    bodyVelocity.Velocity = (targetRootPart.Position - rootPart.Position).Unit * 50 -- Adjust speed as needed
+                    bodyGyro.CFrame = targetRootPart.CFrame -- Align with target's orientation
+                    rootPart.Position = Vector3.new(rootPart.Position.X, -12, rootPart.Position.Z) -- Y-lock
                 end)
 
                 WindUI:Notify({ Title = "ติดตาม", Content = "เปิดใช้งานโหมดติดตาม", Icon = "user-check" })
@@ -329,6 +343,10 @@ return function(Tab, Window, WindUI)
                     followLoop:Disconnect()
                     followLoop = nil
                 end
+
+                -- Destroy BodyMovers
+                if bodyVelocity then bodyVelocity:Destroy(); bodyVelocity = nil end
+                if bodyGyro then bodyGyro:Destroy(); bodyGyro = nil end
 
                 -- Restore camera
                 if originalCameraCFrame then Camera.CFrame = originalCameraCFrame end
