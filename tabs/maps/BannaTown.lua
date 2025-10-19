@@ -95,4 +95,70 @@ return function(Tab, Window, WindUI)
             flySpeed = value
         end
     })
+
+    Tab:Divider()
+
+    -- ================================= --
+    --      Farm Teleport
+    -- ================================= --
+    local FarmSection = Tab:Section({
+        Title = "เทเลพอร์ตฟาร์ม",
+        Icon = "tractor",
+        Opened = true
+    })
+
+    local farmLocations = {
+        { Name = "เนื้อ", Pos = Vector3.new(-1319.78, 16.75, -154.78) },
+        { Name = "ไม้", Pos = Vector3.new(-1449.32, 16.54, -378.36) },
+        { Name = "ข้าวโพด", Pos = Vector3.new(-4897.09, 36.43, -3786.27) },
+        { Name = "กล้วย", Pos = Vector3.new(-4620.16, 16.54, -2758.60) },
+        { Name = "ส้ม", Pos = Vector3.new(-3642.50, 16.54, -4024.09) },
+        { Name = "แอปเปิ้ล", Pos = Vector3.new(-2072.55, 16.54, -3247.81) },
+        { Name = "ทุเรียน", Pos = Vector3.new(-1890.37, 16.54, -1931.15) },
+        { Name = "องุ่น", Pos = Vector3.new(-3496.18, 36.43, -212.87) },
+        { Name = "สตอเบอรี่", Pos = Vector3.new(-4489.14, 36.43, 645.12) },
+        { Name = "สัปปะรด", Pos = Vector3.new(-2316.62, 36.43, 962.75) },
+        { Name = "มะม่วง", Pos = Vector3.new(-1803.09, 36.79, -39.39) },
+        { Name = "ข้าวสาลี", Pos = Vector3.new(-1449.43, 16.54, 1038.49) },
+        { Name = "ไก่", Pos = Vector3.new(-3075.27, 16.54, -1637.17) }
+    }
+
+    local farmNames = {}
+    for _, loc in ipairs(farmLocations) do
+        table.insert(farmNames, loc.Name)
+    end
+
+    local selectedFarm = nil
+
+    FarmSection:Dropdown({
+        Title = "เลือกฟาร์ม",
+        Desc = "เลือกตำแหน่งฟาร์มที่ต้องการเทเลพอร์ต",
+        Values = farmNames,
+        Callback = function(farmName)
+            for _, loc in ipairs(farmLocations) do
+                if loc.Name == farmName then
+                    selectedFarm = loc
+                    break
+                end
+            end
+        end
+    })
+
+    FarmSection:Button({
+        Title = "เทเลพอร์ต",
+        Icon = "send",
+        Callback = function()
+            if selectedFarm then
+                local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if myRoot then
+                    myRoot.CFrame = CFrame.new(selectedFarm.Pos)
+                    WindUI:Notify({ Title = "สำเร็จ", Content = "เทเลพอร์ตไปยัง " .. selectedFarm.Name, Icon = "check" })
+                else
+                    WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "ไม่พบตัวละครของคุณ", Icon = "x" })
+                end
+            else
+                WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกฟาร์มก่อน", Icon = "x" })
+            end
+        end
+    })
 end
