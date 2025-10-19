@@ -15,7 +15,7 @@ return function(Tab, Window, WindUI)
         end
     end
 
-    local flySpeed = 50
+    local flySpeed = 16 -- Default to normal walk speed
     local isFlyEnabled = false
     local bodyVelocity, bodyGyro
     local flyLoop, noclipLoop
@@ -80,5 +80,19 @@ return function(Tab, Window, WindUI)
         Desc = "โหมดบินและเดินทะลุสิ่งกีดขวาง",
         Value = false,
         Callback = function(value) setFly(value) end
+    })
+
+    Tab:Slider({
+        Title = "ปรับความเร็ว",
+        Desc = "ปรับความเร็วของโหมดพระเจ้า",
+        Value = {
+            Default = 16,
+            Min = 10,
+            Max = 200
+        },
+        Step = 1,
+        Callback = function(value)
+            flySpeed = value
+        end
     })
 end
