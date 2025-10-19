@@ -1,7 +1,7 @@
 -- D:/Script/tabs/main_tab.lua
 -- This is the merged version with the old stable Spy function and the new God Mode function.
 
-return function(Tab, Window, WindUI)
+return function(Tab, Window, WindUI, TeleportService)
     -- Services
     local Players = game:GetService("Players")
     local LocalPlayer = Players.LocalPlayer
@@ -115,10 +115,13 @@ return function(Tab, Window, WindUI)
 
     local function teleportToPlayer(targetPlayer)
         if not targetPlayer or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
-        local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if not myRoot then return end
-        myRoot.CFrame = targetPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, 3, 5)
-        WindUI:Notify({ Title = "สำเร็จ", Content = "เทเลพอร์ตไปยัง " .. targetPlayer.Name, Icon = "check" })
+        if not TeleportService then return end -- Safety check
+
+        local targetRoot = targetPlayer.Character.HumanoidRootPart
+        local destination = targetRoot.Position + Vector3.new(0, 5, 5) -- Calculate destination Vector3
+
+        TeleportService:moveTo(destination)
+        WindUI:Notify({ Title = "สำเร็จ", Content = "กำลังเคลื่อนที่ไปยัง " .. targetPlayer.Name, Icon = "check" })
     end
 
     -- ================================= --

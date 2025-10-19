@@ -21,6 +21,7 @@ local baseURL = string.format("https://raw.githubusercontent.com/%s/%s/%s/", GIT
 
 -- URL สำหรับโหลดไฟล์ต่างๆ
 local WindUI_URL = baseURL .. "windui.lua?v=" .. cacheBuster
+local TeleportService_URL = baseURL .. "utils/TeleportService.lua?v=" .. cacheBuster
 local MainTab_URL = baseURL .. "tabs/main_tab.lua?v=" .. cacheBuster
 local SettingsTab_URL = baseURL .. "tabs/settings_tab.lua?v=" .. cacheBuster
 local PositionTab_URL = baseURL .. "tabs/info_tab.lua?v=" .. cacheBuster
@@ -38,6 +39,7 @@ local BannaTownTab_URL = baseURL .. "tabs/maps/BannaTown.lua?v=" .. cacheBuster 
 
 -- โหลดไลบรารีและโมดูลหลัก
 local WindUI = loadstring(game:HttpGet(WindUI_URL))()
+local TeleportService = loadstring(game:HttpGet(TeleportService_URL))()
 local MainTabModule = loadstring(game:HttpGet(MainTab_URL))()
 local InfoTabModule = loadstring(game:HttpGet(PositionTab_URL))()
 local SettingsTabModule = loadstring(game:HttpGet(SettingsTab_URL))()
@@ -56,19 +58,19 @@ local Window = WindUI:CreateWindow({
 
 -- สร้างแท็บและเรียกใช้โมดูลตามลำดับที่ต้องการ
 local MainTab = Window:Tab({ Title = "หน้าหลัก", Icon = "layout-dashboard" })
-MainTabModule(MainTab, Window, WindUI)
+MainTabModule(MainTab, Window, WindUI, TeleportService)
 
 local BANNATOWN_PLACE_ID = 77837537595343
 if game.PlaceId == BANNATOWN_PLACE_ID and BannaTownModule then
     local BannaTownTab = Window:Tab({ Title = "บ้านนาทาวน์", Icon = "map" })
-    BannaTownModule(BannaTownTab, Window, WindUI)
+    BannaTownModule(BannaTownTab, Window, WindUI, TeleportService)
 end
 
 local PositionTab = Window:Tab({ Title = "ข้อมูล", Icon = "map-pin" })
 InfoTabModule(PositionTab, Window, WindUI)
 
 local SettingsTab = Window:Tab({ Title = "ตั้งค่า", Icon = "settings" })
-SettingsTabModule(SettingsTab, Window, WindUI)
+SettingsTabModule(SettingsTab, Window, WindUI, TeleportService)
 
 -- เลือกให้แท็บ "หน้าหลัก" แสดงผลเป็นค่าเริ่มต้น
 MainTab:Select()

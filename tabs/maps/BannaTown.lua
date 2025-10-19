@@ -1,4 +1,4 @@
-return function(Tab, Window, WindUI)
+return function(Tab, Window, WindUI, TeleportService)
     -- Services
     local UserInputService = game:GetService("UserInputService")
     local RunService = game:GetService("RunService")
@@ -151,15 +151,10 @@ return function(Tab, Window, WindUI)
         Title = "เทเลพอร์ต",
         Icon = "send",
         Callback = function()
-            if selectedFarm then
-                local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                if myRoot then
-                    myRoot.CFrame = CFrame.new(selectedFarm.Pos)
-                    WindUI:Notify({ Title = "สำเร็จ", Content = "เทเลพอร์ตไปยัง " .. selectedFarm.Name, Icon = "check" })
-                else
-                    WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "ไม่พบตัวละครของคุณ", Icon = "x" })
-                end
-            else
+            if selectedFarm and TeleportService then
+                TeleportService:moveTo(selectedFarm.Pos)
+                WindUI:Notify({ Title = "สำเร็จ", Content = "กำลังเคลื่อนที่ไปยัง " .. selectedFarm.Name, Icon = "check" })
+            elseif not selectedFarm then
                 WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกฟาร์มก่อน", Icon = "x" })
             end
         end
