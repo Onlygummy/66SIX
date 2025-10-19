@@ -44,27 +44,85 @@ function TeleportService:_pathfind(destination)
     local humanoid = char and char:FindFirstChildOfClass("Humanoid")
     if not rootPart or not humanoid then return end
 
-    local path = PathfindingService:CreatePath()
-    local success, err = pcall(function()
-        path:ComputeAsync(rootPart.Position, destination)
-    end)
+    local originalSpeed = humanoid.WalkSpeed
+    humanoid.WalkSpeed = 120 -- Set high speed
 
-    if success and path.Status == Enum.PathStatus.Success then
+    -- Use a task.spawn to prevent the UI from freezing during pathfinding
+    task.spawn(function()
+        local path = PathfindingService:CreatePath()
+        local success, err = pcall(function()
+            path:ComputeAsync(rootPart.Position, destination)
+        end)
+
+        if not success or path.Status ~= Enum.PathStatus.Success then
+            -- Path computation failed, fallback to a safer method
+            humanoid.WalkSpeed = originalSpeed
+            self:_phased(destination)
+            return
+        end
+
         local waypoints = path:GetWaypoints()
-        local originalSpeed = humanoid.WalkSpeed
-        humanoid.WalkSpeed = 120 -- High speed
-        for _, waypoint in ipairs(waypoints) do
+        local currentWaypointIndex = 1
+
+        -- Path:Blocked event to trigger re-pathing
+        local blockedConnection
+        blockedConnection = path.Blocked:Connect(function(blockedWaypointIndex)
+            -- If the path is blocked ahead of us, re-calculate
+            if blockedWaypointIndex >= currentWaypointIndex then
+                blockedConnection:Disconnect()
+                self:_pathfind(destination) -- Recursively call to re-path
+            end
+        end)
+
+        while currentWaypointIndex <= #waypoints do
+            local waypoint = waypoints[currentWaypointIndex]
             humanoid:MoveTo(waypoint.Position)
             if waypoint.Action == Enum.PathWaypointAction.Jump then
                 humanoid.Jump = true
             end
-            humanoid.MoveToFinished:Wait(2) -- Add a timeout
+
+            local timeWaited = 0
+            local lastPosition = rootPart.Position
+            
+            -- Loop to check progress towards the waypoint
+            while true do
+                task.wait(0.2)
+                timeWaited = timeWaited + 0.2
+
+                local distanceToWaypoint = (rootPart.Position - waypoint.Position).Magnitude
+                
+                -- 1. Proximity Check: If we are close enough, move to next waypoint
+                if distanceToWaypoint < 6 then
+                    break 
+                end
+
+                -- 2. Stuck Detection: If we haven't moved for a while, re-path
+                if (rootPart.Position - lastPosition).Magnitude < 1 then
+                    if timeWaited > 2 then -- Stuck for 2 seconds
+                        blockedConnection:Disconnect()
+                        self:_pathfind(destination) -- Re-path from current position
+                        return -- Exit this failed attempt
+                    end
+                else
+                    -- We moved, so reset the stuck timer and update position
+                    timeWaited = 0
+                    lastPosition = rootPart.Position
+                end
+
+                -- 3. General Timeout: If it takes too long to reach a waypoint, re-path
+                if timeWaited > 5 then
+                    blockedConnection:Disconnect()
+                    self:_pathfind(destination) -- Re-path from current position
+                    return -- Exit this failed attempt
+                end
+            end
+            
+            currentWaypointIndex = currentWaypointIndex + 1
         end
+
+        blockedConnection:Disconnect()
         humanoid.WalkSpeed = originalSpeed
-    else
-        -- Fallback to a safer method if path fails
-        self:_phased(destination)
-    end
+    end)
 end
 
 function TeleportService:moveTo(destination)
