@@ -11,15 +11,14 @@ return function(Tab, Window, WindUI, TeleportService)
 
     local modeMapping = {
         ["วาร์ปทันที (เสี่ยง)"] = "instant",
-        ["ซอยย่อย (ปลอดภัยขึ้น)"] = "phased",
-        ["เดินนำทาง (ปลอดภัยที่สุด)"] = "pathfind"
+        ["ซอยย่อย (ปลอดภัยขึ้น)"] = "phased"
     }
 
     TeleportSection:Dropdown({
         Title = "โหมดการเคลื่อนที่",
         Desc = "เลือกวิธีที่สคริปต์จะใช้ในการวาร์ป",
-        Values = {"วาร์ปทันที (เสี่ยง)", "ซอยย่อย (ปลอดภัยขึ้น)", "เดินนำทาง (ปลอดภัยที่สุด)"},
-        Value = "เดินนำทาง (ปลอดภัยที่สุด)", -- Default
+        Values = {"วาร์ปทันที (เสี่ยง)", "ซอยย่อย (ปลอดภัยขึ้น)"},
+        Value = "ซอยย่อย (ปลอดภัยขึ้น)", -- New Default
         Callback = function(selectedName)
             local mode = modeMapping[selectedName]
             if mode and TeleportService then

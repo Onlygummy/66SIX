@@ -1,9 +1,8 @@
 local TeleportService = {}
 TeleportService.config = {
-    mode = "pathfind" -- Default mode
+    mode = "phased" -- Default mode is now phased
 }
 
-local PathfindingService = game:GetService("PathfindingService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
@@ -22,119 +21,42 @@ function TeleportService:_phased(destination)
     local rootPart = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not rootPart then return end
 
-    local distance = (rootPart.Position - destination).Magnitude
-    if distance < 25 then -- Don't phase for short distances
-        self:_instant(destination)
-        return
-    end
-    
-    local incrementVector = (destination - rootPart.Position).Unit * 25 -- Step of 25 studs
-    local steps = math.floor(distance / 25)
-
-    for i = 1, steps do
-        rootPart.CFrame = CFrame.new(rootPart.Position + incrementVector)
-        task.wait() -- Wait for next frame
-    end
-    rootPart.CFrame = CFrame.new(destination) -- Final step to ensure accuracy
-end
-
-function TeleportService:_pathfind(destination)
-    local char = LocalPlayer.Character
-    local rootPart = char and char:FindFirstChild("HumanoidRootPart")
-    local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-    if not rootPart or not humanoid then return end
-
-    local originalSpeed = humanoid.WalkSpeed
-    humanoid.WalkSpeed = 120 -- Set high speed
-
-    -- Use a task.spawn to prevent the UI from freezing during pathfinding
     task.spawn(function()
-        local path = PathfindingService:CreatePath()
-        local success, err = pcall(function()
-            path:ComputeAsync(rootPart.Position, destination)
-        end)
-
-        if not success or path.Status ~= Enum.PathStatus.Success then
-            -- Path computation failed, fallback to a safer method
-            humanoid.WalkSpeed = originalSpeed
-            self:_phased(destination)
+        local distance = (rootPart.Position - destination).Magnitude
+        if distance < 30 then -- Don't phase for short distances, just do it instantly
+            self:_instant(destination)
             return
         end
-
-        local waypoints = path:GetWaypoints()
-        local currentWaypointIndex = 1
-
-        -- Path:Blocked event to trigger re-pathing
-        local blockedConnection
-        blockedConnection = path.Blocked:Connect(function(blockedWaypointIndex)
-            -- If the path is blocked ahead of us, re-calculate
-            if blockedWaypointIndex >= currentWaypointIndex then
-                blockedConnection:Disconnect()
-                self:_pathfind(destination) -- Recursively call to re-path
-            end
-        end)
-
-        while currentWaypointIndex <= #waypoints do
-            local waypoint = waypoints[currentWaypointIndex]
-            humanoid:MoveTo(waypoint.Position)
-            if waypoint.Action == Enum.PathWaypointAction.Jump then
-                humanoid.Jump = true
+        
+        local remainingDistance = distance
+        while remainingDistance > 0 do
+            local stepSize = math.random(25, 35) -- Random step size
+            if stepSize > remainingDistance then
+                stepSize = remainingDistance
             end
 
-            local timeWaited = 0
-            local lastPosition = rootPart.Position
+            local incrementVector = (destination - rootPart.Position).Unit * stepSize
+            rootPart.CFrame = CFrame.new(rootPart.Position + incrementVector)
+            remainingDistance = remainingDistance - stepSize
             
-            -- Loop to check progress towards the waypoint
-            while true do
-                task.wait(0.2)
-                timeWaited = timeWaited + 0.2
-
-                local distanceToWaypoint = (rootPart.Position - waypoint.Position).Magnitude
-                
-                -- 1. Proximity Check: If we are close enough, move to next waypoint
-                if distanceToWaypoint < 6 then
-                    break 
-                end
-
-                -- 2. Stuck Detection: If we haven't moved for a while, re-path
-                if (rootPart.Position - lastPosition).Magnitude < 1 then
-                    if timeWaited > 2 then -- Stuck for 2 seconds
-                        blockedConnection:Disconnect()
-                        self:_pathfind(destination) -- Re-path from current position
-                        return -- Exit this failed attempt
-                    end
-                else
-                    -- We moved, so reset the stuck timer and update position
-                    timeWaited = 0
-                    lastPosition = rootPart.Position
-                end
-
-                -- 3. General Timeout: If it takes too long to reach a waypoint, re-path
-                if timeWaited > 5 then
-                    blockedConnection:Disconnect()
-                    self:_pathfind(destination) -- Re-path from current position
-                    return -- Exit this failed attempt
-                end
+            if remainingDistance > 0 then
+                task.wait(math.random() * 0.05 + 0.01) -- Random wait time between 0.01 and 0.06
             end
-            
-            currentWaypointIndex = currentWaypointIndex + 1
         end
-
-        blockedConnection:Disconnect()
-        humanoid.WalkSpeed = originalSpeed
     end)
 end
 
 function TeleportService:moveTo(destination)
-    if self.config.mode == "instant" then
-        self:_instant(destination)
-    elseif self.config.mode == "phased" then
-        self:_phased(destination)
-    elseif self.config.mode == "pathfind" then
-        self:_pathfind(destination)
-    else
-        self:_pathfind(destination) -- Default to safest
-    end
+    -- Spawn in a new thread to not yield the main script
+    task.spawn(function()
+        if self.config.mode == "instant" then
+            self:_instant(destination)
+        elseif self.config.mode == "phased" then
+            self:_phased(destination)
+        else
+            self:_phased(destination) -- Default to phased
+        end
+    end)
 end
 
 return TeleportService
