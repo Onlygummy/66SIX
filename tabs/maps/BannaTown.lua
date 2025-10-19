@@ -108,7 +108,7 @@ return function(Tab, Window, WindUI)
     })
 
     local farmLocations = {
-        { Name = "เนื้อ", Pos = Vector3.new(-1319.78, 16.75, -154.78) },
+        { Name = "เนื้อ", Pos = Vector3.new(-1391.72, 16.75, -155.69) },
         { Name = "ไม้", Pos = Vector3.new(-1449.32, 16.54, -378.36) },
         { Name = "ข้าวโพด", Pos = Vector3.new(-4897.09, 36.43, -3786.27) },
         { Name = "กล้วย", Pos = Vector3.new(-4620.16, 16.54, -2758.60) },
@@ -129,11 +129,13 @@ return function(Tab, Window, WindUI)
     end
 
     local selectedFarm = nil
+    local farmDropdown -- Forward declare
 
-    FarmSection:Dropdown({
+    farmDropdown = FarmSection:Dropdown({
         Title = "เลือกฟาร์ม",
         Desc = "เลือกตำแหน่งฟาร์มที่ต้องการเทเลพอร์ต",
         Values = farmNames,
+        SearchBarEnabled = true, -- Add search bar
         Callback = function(farmName)
             for _, loc in ipairs(farmLocations) do
                 if loc.Name == farmName then
@@ -141,6 +143,7 @@ return function(Tab, Window, WindUI)
                     break
                 end
             end
+            farmDropdown:Close() -- Add auto-close
         end
     })
 
