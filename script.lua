@@ -52,43 +52,29 @@ local Window = WindUI:CreateWindow({
     }
 })
 
--- สร้างแท็บหลัก (ยกเว้น Settings)
-local MainTab = Window:Tab({
-    Title = "หน้าหลัก",
-    Icon = "layout-dashboard"
-})
-local PositionTab = Window:Tab({
-    Title = "ข้อมูล",
-    Icon = "map-pin"
-})
+-- สร้างแท็บตามลำดับที่ต้องการ
+local MainTab = Window:Tab({ Title = "หน้าหลัก", Icon = "layout-dashboard" })
 
--- เรียกใช้ Module เพื่อสร้าง UI ในแท็บ
-MainTabModule(MainTab, Window, WindUI)
-InfoTabModule(PositionTab, Window, WindUI)
-
--- =================================================================== --
---      แท็บเฉพาะแมพ (Map-Specific Tabs)
--- =================================================================== --
+-- ตรวจสอบและสร้างแท็บ "บ้านนาทาวน์"
 local BANNATOWN_PLACE_ID = 77837537595343
+local BannaTownTab, BannaTownModule
 if game.PlaceId == BANNATOWN_PLACE_ID then
     pcall(function()
         local BannaTownTab_URL = baseURL .. "tabs/maps/BannaTown.lua?v=" .. cacheBuster
-        local BannaTownModule = loadstring(game:HttpGet(BannaTownTab_URL))()
-        
-        local BannaTownTab = Window:Tab({
-            Title = "บ้านนาทาวน์",
-            Icon = "map"
-        })
-        BannaTownModule(BannaTownTab, Window, WindUI)
+        BannaTownModule = loadstring(game:HttpGet(BannaTownTab_URL))()
+        BannaTownTab = Window:Tab({ Title = "บ้านนาทาวน์", Icon = "map" })
     end)
 end
--- =================================================================== --
 
--- สร้างและเรียกใช้ Module สำหรับแท็บตั้งค่า (ให้แท็บนี้อยู่สุดท้ายเสมอ)
-local SettingsTab = Window:Tab({
-    Title = "ตั้งค่า",
-    Icon = "settings"
-})
+local PositionTab = Window:Tab({ Title = "ข้อมูล", Icon = "map-pin" })
+local SettingsTab = Window:Tab({ Title = "ตั้งค่า", Icon = "settings" })
+
+-- เรียกใช้ Module เพื่อสร้าง UI ในแต่ละแท็บ
+MainTabModule(MainTab, Window, WindUI)
+if BannaTownTab and BannaTownModule then
+    BannaTownModule(BannaTownTab, Window, WindUI)
+end
+InfoTabModule(PositionTab, Window, WindUI)
 SettingsTabModule(SettingsTab, Window, WindUI)
 
 -- เลือกให้แท็บ "หน้าหลัก" แสดงผลเป็นค่าเริ่มต้น
