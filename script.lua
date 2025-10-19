@@ -52,27 +52,17 @@ local Window = WindUI:CreateWindow({
     }
 })
 
--- สร้างแท็บหลัก
+-- สร้างแท็บหลัก (ยกเว้น Settings)
 local MainTab = Window:Tab({
     Title = "หน้าหลัก",
     Icon = "layout-dashboard"
 })
-
 local PositionTab = Window:Tab({
     Title = "ข้อมูล",
     Icon = "map-pin"
 })
 
-local SettingsTab = Window:Tab({
-    Title = "ตั้งค่า",
-    Icon = "settings"
-})
-
--- =================================================================== --
---      (ส่วนของแท็บเฉพาะแมพถูกย้ายไปรวมใน main_tab.lua แล้ว)
--- =================================================================== --
-
--- เรียกใช้ Module เพื่อสร้าง UI ในแท็บหลัก
+-- เรียกใช้ Module เพื่อสร้าง UI ในแท็บ
 MainTabModule(MainTab, Window, WindUI)
 InfoTabModule(PositionTab, Window, WindUI)
 
@@ -86,7 +76,7 @@ if game.PlaceId == BANNATOWN_PLACE_ID then
         local BannaTownModule = loadstring(game:HttpGet(BannaTownTab_URL))()
         
         local BannaTownTab = Window:Tab({
-            Title = "BannaTown",
+            Title = "บ้านนาทาวน์",
             Icon = "map"
         })
         BannaTownModule(BannaTownTab, Window, WindUI)
@@ -94,7 +84,11 @@ if game.PlaceId == BANNATOWN_PLACE_ID then
 end
 -- =================================================================== --
 
--- เรียกใช้ Module สำหรับแท็บตั้งค่า (ให้แท็บนี้อยู่สุดท้ายเสมอ)
+-- สร้างและเรียกใช้ Module สำหรับแท็บตั้งค่า (ให้แท็บนี้อยู่สุดท้ายเสมอ)
+local SettingsTab = Window:Tab({
+    Title = "ตั้งค่า",
+    Icon = "settings"
+})
 SettingsTabModule(SettingsTab, Window, WindUI)
 
 -- เลือกให้แท็บ "หน้าหลัก" แสดงผลเป็นค่าเริ่มต้น
