@@ -75,6 +75,26 @@ local SettingsTab = Window:Tab({
 -- เรียกใช้ Module เพื่อสร้าง UI ในแท็บหลัก
 MainTabModule(MainTab, Window, WindUI)
 InfoTabModule(PositionTab, Window, WindUI)
+
+-- =================================================================== --
+--      แท็บเฉพาะแมพ (Map-Specific Tabs)
+-- =================================================================== --
+local BANNATOWN_PLACE_ID = 77837537595343
+if game.PlaceId == BANNATOWN_PLACE_ID then
+    pcall(function()
+        local BannaTownTab_URL = baseURL .. "tabs/maps/BannaTown.lua?v=" .. cacheBuster
+        local BannaTownModule = loadstring(game:HttpGet(BannaTownTab_URL))()
+        
+        local BannaTownTab = Window:Tab({
+            Title = "BannaTown",
+            Icon = "map"
+        })
+        BannaTownModule(BannaTownTab, Window, WindUI)
+    end)
+end
+-- =================================================================== --
+
+-- เรียกใช้ Module สำหรับแท็บตั้งค่า (ให้แท็บนี้อยู่สุดท้ายเสมอ)
 SettingsTabModule(SettingsTab, Window, WindUI)
 
 -- เลือกให้แท็บ "หน้าหลัก" แสดงผลเป็นค่าเริ่มต้น
