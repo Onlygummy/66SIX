@@ -127,7 +127,7 @@ function LiteUI:CreateWindow(props)
     function Window:Tab(tabProps)
         local tabContainer = Create("ScrollingFrame", {
             Name = tabProps.Title or "Tab", Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, ScrollingDirection = "Y",
-            CanvasSize = UDim2.new(0, 0, 0, 0), ScrollBarThickness = 4, ScrollBarColor3 = Cfg.Colors.Accent, Visible = false, Parent = contentFrame
+            CanvasSize = UDim2.new(0, 0, 0, 0), ScrollBarThickness = 4, ScrollBarImageColor3 = Cfg.Colors.Accent, Visible = false, Parent = contentFrame
         })
         Create("UIPadding", { PaddingLeft = UDim.new(0, Cfg.Sizes.WindowPadding), PaddingRight = UDim.new(0, Cfg.Sizes.WindowPadding), PaddingTop = UDim.new(0, 10), Parent = tabContainer })
         local tabLayout = Create("UIListLayout", { Padding = UDim.new(0, Cfg.Sizes.ComponentPadding), SortOrder = "LayoutOrder", Parent = tabContainer })

@@ -16,12 +16,12 @@ local GITHUB_BRANCH = "develop" -- Or "main" when ready
 
 local LITE_UI_URL = string.format("https://raw.githubusercontent.com/%s/%s/%s/experimental/LiteUI.lua", GITHUB_USER, GITHUB_REPO, GITHUB_BRANCH)
 
-local LiteUI, success, err = pcall(function() 
+local success, LiteUI = pcall(function() 
     return loadstring(game:HttpGet(LITE_UI_URL))()
 end)
 
 if not success or not LiteUI then
-    warn("LiteUI failed to load!", err)
+    warn("LiteUI failed to load!", LiteUI) -- On failure, the error message is the second return value
     return
 end
 
