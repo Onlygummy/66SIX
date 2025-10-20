@@ -159,7 +159,7 @@ function LiteUI:CreateWindow(props)
             local sectionFrame = Create("Frame", { Name = secProps.Title or "Section", AutomaticSize = "Y", Size = UDim2.new(1, 0, 0, 0), BackgroundColor3 = Cfg.Colors.Section, Parent = tabContainer })
             Create("UICorner", { CornerRadius = UDim.new(0, 12), Parent = sectionFrame })
             Create("UIStroke", { Thickness = 1, Color = Cfg.Colors.Outline, Parent = sectionFrame })
-            Create("UIPadding", { All = UDim.new(0, Cfg.Sizes.SectionPadding), Parent = sectionFrame })
+            Create("UIPadding", { PaddingLeft = UDim.new(0, Cfg.Sizes.SectionPadding), PaddingRight = UDim.new(0, Cfg.Sizes.SectionPadding), PaddingTop = UDim.new(0, Cfg.Sizes.SectionPadding), PaddingBottom = UDim.new(0, Cfg.Sizes.SectionPadding), Parent = sectionFrame })
             Create("UIListLayout", { Padding = UDim.new(0, Cfg.Sizes.ComponentPadding), Parent = sectionFrame })
             
             local Section = {}
