@@ -99,6 +99,60 @@ return function(Tab, Window, WindUI, TeleportService)
     Tab:Divider()
 
     -- ================================= --
+    --      Building Teleport
+    -- ================================= --
+    local BuildingSection = Tab:Section({
+        Title = "เทเลพอร์ตอาคาร",
+        Icon = "building",
+        Opened = true
+    })
+
+    local buildingLocations = {
+        { Name = "ร้านรับซื้อ", Pos = Vector3.new(373.72, 7.15, 184.99) },
+        { Name = "ร้านขายอาหาร", Pos = Vector3.new(767.23, 6.74, 175.34) },
+        { Name = "ร้านขายอุปกรณ์", Pos = Vector3.new(-303.57, 6.81, 1.26) }
+    }
+
+    local buildingNames = {}
+    for _, loc in ipairs(buildingLocations) do
+        table.insert(buildingNames, loc.Name)
+    end
+
+    local selectedBuilding = nil
+    local buildingDropdown -- Forward declare
+
+    buildingDropdown = BuildingSection:Dropdown({
+        Title = "เลือกอาคาร",
+        Desc = "เลือกตำแหน่งอาคารที่ต้องการเทเลพอร์ต",
+        Values = buildingNames,
+        SearchBarEnabled = true,
+        Callback = function(buildingName)
+            for _, loc in ipairs(buildingLocations) do
+                if loc.Name == buildingName then
+                    selectedBuilding = loc
+                    break
+                end
+            end
+            buildingDropdown:Close()
+        end
+    })
+
+    BuildingSection:Button({
+        Title = "เทเลพอร์ต",
+        Icon = "send",
+        Callback = function()
+            if selectedBuilding and TeleportService then
+                TeleportService:moveTo(selectedBuilding.Pos)
+                WindUI:Notify({ Title = "สำเร็จ", Content = "กำลังเคลื่อนที่ไปยัง " .. selectedBuilding.Name, Icon = "check" })
+            elseif not selectedBuilding then
+                WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกอาคารก่อน", Icon = "x" })
+            end
+        end
+    })
+
+    Tab:Divider()
+
+    -- ================================= --
     --      Farm Teleport
     -- ================================= --
     local FarmSection = Tab:Section({
