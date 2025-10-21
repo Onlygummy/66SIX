@@ -272,12 +272,15 @@ return function(Tab, Window, WindUI, TeleportService)
         if not cowContainer then return nil end
 
         for _, child in pairs(cowContainer:GetChildren()) do
-            if child:IsA("Model") and child:FindFirstChild("HumanoidRootPart") then -- Assuming cows are models with a HumanoidRootPart
-                local cowPos = child.HumanoidRootPart.Position
-                local distance = (playerPos - cowPos).Magnitude
-                if distance < minDistance then
-                    minDistance = distance
-                    nearestCow = child
+            if child:IsA("Model") and child:FindFirstChild("Cube") then -- Assuming cows are models with a 'Cube' part
+                local cowPart = child:FindFirstChild("Cube")
+                if cowPart then
+                    local cowPos = cowPart.Position
+                    local distance = (playerPos - cowPos).Magnitude
+                    if distance < minDistance then
+                        minDistance = distance
+                        nearestCow = cowPart -- Return the 'Cube' part directly
+                    end
                 end
             end
         end
@@ -315,11 +318,11 @@ return function(Tab, Window, WindUI, TeleportService)
                     local nearestCow = findNearestCow()
 
                     if nearestCow and not table.find(cowsFarmedThisCycle, nearestCow) then
-                        autoFarmStatusParagraph:SetDesc("สถานะ: กำลังเคลื่อนที่ไปยัง " .. nearestCow.Name .. "...")
-                        moveToTarget(nearestCow.HumanoidRootPart)
+                        autoFarmStatusParagraph:SetDesc("สถานะ: กำลังเคลื่อนที่ไปยัง " .. nearestCow.Parent.Name .. "...")
+                        moveToTarget(nearestCow)
                         task.wait(0.5) -- Wait for movement
 
-                        autoFarmStatusParagraph:SetDesc("สถานะ: กำลังเก็บเกี่ยว " .. nearestCow.Name .. "...")
+                        autoFarmStatusParagraph:SetDesc("สถานะ: กำลังเก็บเกี่ยว " .. nearestCow.Parent.Name .. "...")
                         simulateKeyPress(Enum.KeyCode.F)
                         table.insert(cowsFarmedThisCycle, nearestCow)
                         task.wait(currentCooldown)
