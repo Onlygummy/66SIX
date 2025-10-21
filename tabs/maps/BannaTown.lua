@@ -21,14 +21,16 @@ return function(Tab, Window, WindUI, TeleportService)
     local flyLoop, noclipLoop
 
     local function simulateKeyPress(key)
-        local success, err = pcall(function()
-            UserInputService:SimulateKeyPress(key, true)
-            task.wait(0.1) -- Small delay to ensure key press is registered
-            UserInputService:SimulateKeyPress(key, false)
-        end)
-        if not success then
-            WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "ไม่สามารถจำลองการกดปุ่มได้: " .. tostring(err), Icon = "x" })
-        end
+        local inputObject = Instance.new("InputObject")
+        inputObject.UserInputType = Enum.UserInputType.Keyboard
+        inputObject.KeyCode = key
+        inputObject.UserInputState = Enum.UserInputState.Begin
+        UserInputService:ProcessKeyEvent(inputObject, false)
+
+        task.wait(0.1) -- Small delay to ensure key press is registered
+
+        inputObject.UserInputState = Enum.UserInputState.End
+        UserInputService:ProcessKeyEvent(inputObject, false)
     end
 
     local meatFarmLocation = Vector3.new(-1391.72, 16.75, -155.69) -- Position for "เนื้อ" farm
