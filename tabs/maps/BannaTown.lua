@@ -20,14 +20,16 @@ return function(Tab, Window, WindUI, TeleportService)
     local bodyVelocity, bodyGyro
     local flyLoop, noclipLoop
 
-    local function simulateKeyPress(key)
+    local function simulateKeyPress(key, duration)
+        duration = duration or 0.1 -- Default to 0.1 seconds if no duration is provided
+
         local inputObject = Instance.new("InputObject")
         inputObject.UserInputType = Enum.UserInputType.Keyboard
         inputObject.KeyCode = key
         inputObject.UserInputState = Enum.UserInputState.Begin
         UserInputService:ProcessKeyEvent(inputObject, false)
 
-        task.wait(0.1) -- Small delay to ensure key press is registered
+        task.wait(duration) -- Hold the key for the specified duration
 
         inputObject.UserInputState = Enum.UserInputState.End
         UserInputService:ProcessKeyEvent(inputObject, false)
@@ -325,7 +327,7 @@ return function(Tab, Window, WindUI, TeleportService)
                         task.wait(0.5) -- Wait for movement
 
                         autoFarmStatusParagraph:SetDesc("สถานะ: กำลังเก็บเกี่ยว " .. nearestCow.Parent.Name .. "...")
-                        simulateKeyPress(Enum.KeyCode.F)
+                        simulateKeyPress(Enum.KeyCode.F, 5)
                         table.insert(cowsFarmedThisCycle, nearestCow)
                         task.wait(currentCooldown)
                     else
