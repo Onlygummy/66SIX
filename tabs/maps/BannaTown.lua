@@ -20,6 +20,19 @@ return function(Tab, Window, WindUI, TeleportService)
     local bodyVelocity, bodyGyro
     local flyLoop, noclipLoop
 
+    local function simulateKeyPress(key)
+        local success, err = pcall(function()
+            UserInputService:SimulateKeyPress(key, true)
+            task.wait(0.1) -- Small delay to ensure key press is registered
+            UserInputService:SimulateKeyPress(key, false)
+        end)
+        if not success then
+            WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "ไม่สามารถจำลองการกดปุ่มได้: " .. tostring(err), Icon = "x" })
+        end
+    end
+
+    local meatFarmLocation = Vector3.new(-1391.72, 16.75, -155.69) -- Position for "เนื้อ" farm
+
     local function setupFlyMovers()
         if not bodyVelocity then
             bodyVelocity = Instance.new("BodyVelocity")
@@ -210,6 +223,135 @@ return function(Tab, Window, WindUI, TeleportService)
                 WindUI:Notify({ Title = "สำเร็จ", Content = "กำลังเคลื่อนที่ไปยัง " .. selectedFarm.Name, Icon = "check" })
             elseif not selectedFarm then
                 WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกฟาร์มก่อน", Icon = "x" })
+            end
+        end
+    })
+
+    Tab:Divider()
+
+    -- ================================= --
+    --      Auto-Farm Meat
+    -- ================================= --
+    local AutoFarmMeatSection = Tab:Section({
+        Title = "ออโต้ฟาร์มเนื้อ",
+        Icon = "cow",
+        Opened = true
+    })
+
+    local isAutoFarming = false
+    local autoFarmLoop = nil
+    local currentCooldown = 1 -- Default cooldown in seconds
+
+    local autoFarmStatusParagraph = AutoFarmMeatSection:Paragraph({
+        Title = "สถานะ",
+        Desc = "สถานะ: หยุดทำงาน"
+    })
+
+    AutoFarmMeatSection:Slider({
+        Title = "ระยะเวลา Cooldown (วินาที)",
+        Desc = "ปรับระยะเวลารอระหว่างการเก็บเกี่ยวแต่ละครั้ง",
+        Value = {
+            Default = currentCooldown,
+            Min = 0.1,
+            Max = 10
+        },
+        Step = 0.1,
+        Callback = function(value)
+            currentCooldown = value
+        end
+    })
+
+    local function findNearestCow()
+        local nearestCow = nil
+        local minDistance = math.huge
+        local playerPos = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character.HumanoidRootPart.Position
+
+        if not playerPos then return nil end
+
+        local cowContainer = workspace.Plants.Cow
+        if not cowContainer then return nil end
+
+        for _, child in pairs(cowContainer:GetChildren()) do
+            if child:IsA("Model") and child:FindFirstChild("HumanoidRootPart") then -- Assuming cows are models with a HumanoidRootPart
+                local cowPos = child.HumanoidRootPart.Position
+                local distance = (playerPos - cowPos).Magnitude
+                if distance < minDistance then
+                    minDistance = distance
+                    nearestCow = child
+                end
+            end
+        end
+        return nearestCow
+    end
+
+    local function moveToTarget(targetPart)
+        if not TeleportService or not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+        local playerRoot = LocalPlayer.Character.HumanoidRootPart
+        local targetPos = targetPart.Position
+
+        -- Calculate a position slightly in front of the target
+        local direction = (playerRoot.Position - targetPos).Unit
+        local offsetDistance = 3 -- Distance from the target to stand
+        local destination = targetPos + (direction * offsetDistance)
+        destination = Vector3.new(destination.X, targetPos.Y, destination.Z) -- Keep player at target's Y level
+
+        TeleportService:moveTo(destination)
+    end
+
+    local function startAutoFarm()
+        isAutoFarming = true
+        autoFarmStatusParagraph:SetDesc("สถานะ: กำลังเริ่มต้น...")
+        WindUI:Notify({ Title = "ออโต้ฟาร์มเนื้อ", Content = "เริ่มระบบออโต้ฟาร์มเนื้อ", Icon = "play" })
+
+        autoFarmLoop = task.spawn(function()
+            while isAutoFarming do
+                autoFarmStatusParagraph:SetDesc("สถานะ: กำลังเทเลพอร์ตไปยังฟาร์มเนื้อ...")
+                TeleportService:moveTo(meatFarmLocation)
+                task.wait(1) -- Wait for teleport to complete
+
+                local cowsFarmedThisCycle = {}
+
+                while isAutoFarming do
+                    local nearestCow = findNearestCow()
+
+                    if nearestCow and not table.find(cowsFarmedThisCycle, nearestCow) then
+                        autoFarmStatusParagraph:SetDesc("สถานะ: กำลังเคลื่อนที่ไปยัง " .. nearestCow.Name .. "...")
+                        moveToTarget(nearestCow.HumanoidRootPart)
+                        task.wait(0.5) -- Wait for movement
+
+                        autoFarmStatusParagraph:SetDesc("สถานะ: กำลังเก็บเกี่ยว " .. nearestCow.Name .. "...")
+                        simulateKeyPress(Enum.KeyCode.F)
+                        table.insert(cowsFarmedThisCycle, nearestCow)
+                        task.wait(currentCooldown)
+                    else
+                        autoFarmStatusParagraph:SetDesc("สถานะ: ไม่พบวัวที่ยังไม่ได้เก็บเกี่ยวในบริเวณ หรือเก็บเกี่ยวครบแล้ว")
+                        task.wait(2) -- Wait before re-scanning
+                        break -- Exit inner loop to re-teleport to farm location
+                    end
+                end
+            end
+        end)
+    end
+
+    local function stopAutoFarm()
+        isAutoFarming = false
+        if autoFarmLoop then
+            task.cancel(autoFarmLoop)
+            autoFarmLoop = nil
+        end
+        autoFarmStatusParagraph:SetDesc("สถานะ: หยุดทำงาน")
+        WindUI:Notify({ Title = "ออโต้ฟาร์มเนื้อ", Content = "หยุดระบบออโต้ฟาร์มเนื้อ", Icon = "stop" })
+    end
+
+    AutoFarmMeatSection:Toggle({
+        Title = "เปิด/ปิด ออโต้ฟาร์มเนื้อ",
+        Desc = "เปิด/ปิดระบบฟาร์มวัวอัตโนมัติ",
+        Value = false,
+        Callback = function(value)
+            if value then
+                startAutoFarm()
+            else
+                stopAutoFarm()
             end
         end
     })

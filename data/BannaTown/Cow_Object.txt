@@ -1,0 +1,8 @@
+workspace.Plants.Cow["\224\184\167\224\184\177\224\184\167\224\184\162\224\184\183\224\184\153"]
+workspace.Plants.Cow["\224\184\167\224\184\177\224\184\167\224\184\129\224\184\180\224\184\153\224\184\171\224\184\141\224\185\137\224\184\178"]
+workspace.Plants.Cow:GetChildren()[3]
+workspace.Plants.Cow:GetChildren()[7]
+workspace.Plants.Cow:GetChildren()[8]
+workspace.Plants.Cow:GetChildren()[9]
+workspace.Plants.Cow:GetChildren()[6]
+workspace.Plants.Cow:GetChildren()[5]
