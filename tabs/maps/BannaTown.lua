@@ -346,6 +346,20 @@ return function(Tab, Window, WindUI, TeleportService)
         TeleportService:moveTo(destination)
     end
 
+    local function teleportToCowInstant(targetPart)
+        if not TeleportService or not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+        local playerRoot = LocalPlayer.Character.HumanoidRootPart
+        local targetPos = targetPart.Position
+
+        -- Calculate a position slightly in front of the target
+        local direction = (playerRoot.Position - targetPos).Unit
+        local offsetDistance = 3 -- Distance from the target to stand
+        local destination = targetPos + (direction * offsetDistance)
+        destination = Vector3.new(destination.X, targetPos.Y, destination.Z) -- Keep player at target's Y level
+
+        TeleportService:_instant(destination) -- Use _instant for forced instant teleport
+    end
+
     local SELL_POINT_LOCATION = Vector3.new(373.72, 7.15, 184.99) -- Coordinates for "ร้านรับซื้อ"
 
     local function checkInventoryCapacity()
@@ -518,10 +532,6 @@ return function(Tab, Window, WindUI, TeleportService)
                     -- Inventory check (keep this)
                     local currentCapacity, maxCapacity = checkInventoryCapacity()
                     if currentCapacity and maxCapacity and currentCapacity >= maxCapacity then
-                        autoFarmStatusParagraphTrial:SetDesc("ช่องเก็บของเต็ม! กำลังวาร์ปไปจุดรับซื้อ...")
-                        WindUI:Notify({ Title = "ออโต้ฟาร์มเนื้อ (ทดลอง)", Content = "ช่องเก็บของเต็ม! กำลังวาร์ปไปจุดรับซื้อ", Icon = "package" })
-                        TeleportService:moveTo(SELL_POINT_LOCATION)
-                        task.wait(1) -- Wait for teleport to complete
                         autoFarmStatusParagraphTrial:SetDesc("ช่องเก็บของเต็ม! หยุดระบบออโต้ฟาร์ม (ทดลอง)")
                         WindUI:Notify({ Title = "ออโต้ฟาร์มเนื้อ (ทดลอง)", Content = "ช่องเก็บของเต็ม! หยุดระบบออโต้ฟาร์ม (ทดลอง)", Icon = "package-x" })
                         stopTrialAutoFarm() -- Stop the auto-farm
