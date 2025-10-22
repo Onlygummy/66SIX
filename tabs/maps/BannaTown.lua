@@ -76,6 +76,26 @@ return function(Tab, Window, WindUI, TeleportService)
         return false -- Indicate failure
     end
 
+    local function getSpecificShopPrompt()
+        -- WARNING: This path uses GetChildren() by index, which is extremely fragile and prone to breaking if the game's hierarchy changes.
+        local obj77 = workspace:GetChildren()[77]
+        if not obj77 then warn("getSpecificShopPrompt: workspace:GetChildren()[77] not found!"); return nil end
+
+        local obj3 = obj77:GetChildren()[3]
+        if not obj3 then warn("getSpecificShopPrompt: workspace:GetChildren()[77]:GetChildren()[3] not found!"); return nil end
+
+        local meshPad = obj3:FindFirstChild("Mesh/Pad")
+        if not meshPad then warn("getSpecificShopPrompt: Mesh/Pad not found!"); return nil end
+
+        local attachment = meshPad:FindFirstChild("Attachment")
+        if not attachment then warn("getSpecificShopPrompt: Attachment not found!"); return nil end
+
+        local prompt = attachment:FindFirstChildOfClass("ProximityPrompt")
+        if not prompt then warn("getSpecificShopPrompt: ProximityPrompt not found!"); return nil end
+
+        return prompt
+    end
+
     local meatFarmLocation = Vector3.new(-1391.72, 16.75, -155.69) -- Position for "เนื้อ" farm
 
     local function setupFlyMovers()
@@ -656,6 +676,29 @@ return function(Tab, Window, WindUI, TeleportService)
                 startTrialAutoFarm()
             else
                 stopTrialAutoFarm()
+            end
+        end
+    })
+
+    Tab:Divider()
+
+    local ShopManagementSection = Tab:Section({
+        Title = "การจัดการร้านค้า",
+        Icon = "store", -- A suitable icon
+        Opened = true
+    })
+
+    ShopManagementSection:Toggle({
+        Title = "เปิด/ปิดร้านค้า",
+        Desc = "บังคับเปิดหรือปิด ProximityPrompt ของร้านค้า",
+        Value = false, -- Default to off
+        Callback = function(value)
+            local shopPrompt = getSpecificShopPrompt()
+            if shopPrompt then
+                shopPrompt.Enabled = value
+                WindUI:Notify({ Title = "การจัดการร้านค้า", Content = "Prompt ร้านค้าถูกตั้งค่าเป็น: " .. tostring(value), Icon = "check" })
+            else
+                WindUI:Notify({ Title = "การจัดการร้านค้า", Content = "ไม่พบ Prompt ร้านค้าตาม Path ที่ระบุ!", Icon = "x" })
             end
         end
     })
