@@ -20,36 +20,26 @@ return function(Tab, Window, WindUI, TeleportService)
     local bodyVelocity, bodyGyro
     local flyLoop, noclipLoop
 
-    local function simulateKeyPress(key, duration, targetPart)
-        duration = duration or 0.1 -- Default to 0.1 seconds if no duration is provided
+    local function simulateKeyPress(targetPart)
+        if not targetPart then return false end
 
-        local prompt = nil
-        if targetPart then
-            -- Check for ProximityPrompt in the targetPart or its ancestors
-            prompt = targetPart:FindFirstChildOfClass("ProximityPrompt")
-            if not prompt then
-                prompt = targetPart.Parent:FindFirstChildOfClass("ProximityPrompt")
-            end
+        -- Find the ProximityPrompt on the target or its parent
+        local prompt = targetPart:FindFirstChildOfClass("ProximityPrompt")
+        if not prompt then
+            prompt = targetPart.Parent and targetPart.Parent:FindFirstChildOfClass("ProximityPrompt")
         end
 
-        if prompt and prompt.Enabled and prompt.HoldKey == key then
-            -- Interact with ProximityPrompt
+        -- If a valid prompt is found, trigger it using its own HoldDuration
+        if prompt and prompt.Enabled then
             prompt:InputHoldBegin()
-            task.wait(duration)
+            if prompt.HoldDuration > 0 then
+                task.wait(prompt.HoldDuration)
+            end
             prompt:InputHoldEnd()
-        else
-            -- Fallback to UserInputService:ProcessKeyEvent if no ProximityPrompt or not enabled
-            local inputObject = Instance.new("InputObject")
-            inputObject.UserInputType = Enum.UserInputType.Keyboard
-            inputObject.KeyCode = key
-            inputObject.UserInputState = Enum.UserInputState.Begin
-            UserInputService:ProcessKeyEvent(inputObject, false)
-
-            task.wait(duration)
-
-            inputObject.UserInputState = Enum.UserInputState.End
-            UserInputService:ProcessKeyEvent(inputObject, false)
+            return true -- Indicate success
         end
+        
+        return false -- Indicate failure
     end
 
     local meatFarmLocation = Vector3.new(-1391.72, 16.75, -155.69) -- Position for "เนื้อ" farm
@@ -344,9 +334,13 @@ return function(Tab, Window, WindUI, TeleportService)
                         task.wait(0.5) -- Wait for movement
 
                         autoFarmStatusParagraph:SetDesc("สถานะ: กำลังเก็บเกี่ยว " .. nearestCow.Parent.Name .. "...")
-                        simulateKeyPress(Enum.KeyCode.F, 5, nearestCow)
-                        table.insert(cowsFarmedThisCycle, nearestCow)
-                        task.wait(currentCooldown)
+                        if simulateKeyPress(nearestCow) then
+                            table.insert(cowsFarmedThisCycle, nearestCow)
+                            task.wait(currentCooldown)
+                        else
+                            -- If interaction fails (e.g., no prompt), wait briefly before trying next cow
+                            task.wait(0.5)
+                        end
                     else
                         autoFarmStatusParagraph:SetDesc("สถานะ: ไม่พบวัวที่ยังไม่ได้เก็บเกี่ยวในบริเวณ หรือเก็บเกี่ยวครบแล้ว")
                         task.wait(2) -- Wait before re-scanning
