@@ -263,7 +263,7 @@ return function(Tab, Window, WindUI, TeleportService)
         Desc = "ปรับระยะเวลารอระหว่างการเก็บเกี่ยวแต่ละครั้ง",
         Value = {
             Default = currentCooldown,
-            Min = 0.1,
+            Min = 3,
             Max = 10
         },
         Step = 0.1,
