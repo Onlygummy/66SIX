@@ -348,9 +348,28 @@ return function(Tab, Window, WindUI, TeleportService)
                     return currentCapacity, maxCapacity
                 else
                     warn("Failed to convert inventory capacity to numbers: " .. allItem.Text)
-                    return nil, nil
-                end
-            else
+                            return nil, nil
+                        end
+                    
+                        local CRAFTING_POINT_LOCATION = Vector3.new(-1442.80, 16.75, -87.65) -- Coordinates for Crafting Point
+                    
+                        local function toggleCraftingUI(visible)
+                            local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui", 5)
+                            if not playerGui then warn("toggleCraftingUI: PlayerGui not found!"); return end
+                    
+                            local menu = playerGui:FindFirstChild("Menu")
+                            if not menu then warn("toggleCraftingUI: Menu UI not found!"); return end
+                    
+                            local crafting = menu:FindFirstChild("Crafting")
+                            if not crafting then warn("toggleCraftingUI: Crafting UI not found!"); return end
+                    
+                            if crafting:IsA("Frame") then
+                                crafting.Visible = visible
+                                print("toggleCraftingUI: Crafting UI Visible set to " .. tostring(visible))
+                            else
+                                warn("toggleCraftingUI: Crafting ain't a Frame, check your path!")
+                            end
+                        end            else
                 warn("Inventory Text format ain't X/Y: " .. allItem.Text)
                 return nil, nil
             end
@@ -407,10 +426,22 @@ return function(Tab, Window, WindUI, TeleportService)
                             -- Check inventory after each successful farm
                             local currentCapacity, maxCapacity = checkInventoryCapacity()
                             if currentCapacity and maxCapacity and currentCapacity >= maxCapacity then
-                                autoFarmStatusParagraph:SetDesc("ช่องเก็บของเต็ม! กำลังวาร์ปไปจุดรับซื้อ...")
-                                WindUI:Notify({ Title = "ออโต้ฟาร์มเนื้อ", Content = "ช่องเก็บของเต็ม! กำลังวาร์ปไปจุดรับซื้อ", Icon = "package" })
+                                autoFarmStatusParagraph:SetDesc("ช่องเก็บของเต็ม! กำลังวาร์ปไปจุด Crafting...")
+                                WindUI:Notify({ Title = "ออโต้ฟาร์มเนื้อ", Content = "ช่องเก็บของเต็ม! กำลังวาร์ปไปจุด Crafting", Icon = "package" })
+                                TeleportService:moveTo(CRAFTING_POINT_LOCATION)
+                                task.wait(1) -- Wait for teleport to complete
+
+                                autoFarmStatusParagraph:SetDesc("กำลังเปิด UI Crafting...")
+                                toggleCraftingUI(true)
+                                task.wait(10) -- Wait for 10 seconds for crafting
+                                autoFarmStatusParagraph:SetDesc("กำลังปิด UI Crafting...")
+                                toggleCraftingUI(false)
+
+                                autoFarmStatusParagraph:SetDesc("กำลังวาร์ปไปจุดรับซื้อ...")
+                                WindUI:Notify({ Title = "ออโต้ฟาร์มเนื้อ", Content = "กำลังวาร์ปไปจุดรับซื้อ", Icon = "package" })
                                 TeleportService:moveTo(SELL_POINT_LOCATION)
                                 task.wait(1) -- Wait for teleport to complete
+
                                 autoFarmStatusParagraph:SetDesc("ช่องเก็บของเต็ม! หยุดระบบออโต้ฟาร์ม")
                                 WindUI:Notify({ Title = "ออโต้ฟาร์มเนื้อ", Content = "ช่องเก็บของเต็ม! หยุดระบบออโต้ฟาร์ม", Icon = "package-x" })
                                 stopAutoFarm() -- Stop the auto-farm
