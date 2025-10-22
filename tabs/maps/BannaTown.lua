@@ -334,12 +334,28 @@ return function(Tab, Window, WindUI, TeleportService)
                         task.wait(0.5) -- Wait for movement
 
                         autoFarmStatusParagraph:SetDesc("สถานะ: กำลังเก็บเกี่ยว " .. nearestCow.Parent.Name .. "...")
-                        if simulateKeyPress(nearestCow) then
+                        
+                        local interactionAttempts = 0
+                        local maxInteractionAttempts = 10 -- Prevent infinite loops if cow never disappears
+                        while nearestCow.LocalTransparencyModifier < 1 and interactionAttempts < maxInteractionAttempts do
+                            if triggerProximityPrompt(nearestCow) then
+                                autoFarmStatusParagraph:SetDesc("สถานะ: เก็บเกี่ยว " .. nearestCow.Parent.Name .. " (ครั้งที่ " .. (interactionAttempts + 1) .. ")")
+                                task.wait(currentCooldown) -- Wait for cooldown between triggers on the same cow
+                            else
+                                -- If prompt interaction fails, maybe the prompt disappeared or is disabled
+                                -- Break the loop and move to next cow
+                                break
+                            end
+                            interactionAttempts = interactionAttempts + 1
+                        end
+
+                        -- After the loop, if the cow is now transparent, add it to farmed list
+                        if nearestCow.LocalTransparencyModifier >= 1 then
                             table.insert(cowsFarmedThisCycle, nearestCow)
-                            task.wait(currentCooldown)
                         else
-                            -- If interaction fails (e.g., no prompt), wait briefly before trying next cow
-                            task.wait(0.5)
+                            -- If it didn't become transparent after max attempts, it means interaction failed or cow didn't disappear.
+                            -- We still need a small wait before finding the next cow.
+                            task.wait(currentCooldown)
                         end
                     else
                         autoFarmStatusParagraph:SetDesc("สถานะ: ไม่พบวัวที่ยังไม่ได้เก็บเกี่ยวในบริเวณ หรือเก็บเกี่ยวครบแล้ว")
