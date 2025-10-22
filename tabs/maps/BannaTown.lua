@@ -272,7 +272,7 @@ return function(Tab, Window, WindUI, TeleportService)
         Desc = "ปรับระยะเวลารอระหว่างการเก็บเกี่ยวแต่ละครั้ง",
         Value = {
             Default = currentCooldown,
-            Min = 3,
+            Min = 1,
             Max = 10
         },
         Step = 0.1,
@@ -321,6 +321,45 @@ return function(Tab, Window, WindUI, TeleportService)
         TeleportService:moveTo(destination)
     end
 
+    local SELL_POINT_LOCATION = Vector3.new(373.72, 7.15, 184.99) -- Coordinates for "ร้านรับซื้อ"
+
+    local function checkInventoryCapacity()
+        local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui", 5)
+        if not playerGui then warn("PlayerGui not found!"); return nil, nil end
+
+        local menu = playerGui:FindFirstChild("Menu")
+        if not menu then warn("Menu UI not found!"); return nil, nil end
+
+        local backpackFrame = menu:FindFirstChild("BackpackFrame")
+        if not backpackFrame then warn("BackpackFrame UI not found!"); return nil, nil end
+
+        local top1 = backpackFrame:FindFirstChild("TOP1")
+        if not top1 then warn("TOP1 UI not found!"); return nil, nil end
+
+        local allItem = top1:FindFirstChild("AllItem")
+        if not allItem then warn("AllItem UI not found!"); return nil, nil end
+
+        if allItem:IsA("TextLabel") then
+            local parts = allItem.Text:split("/")
+            if #parts == 2 then
+                local currentCapacity = tonumber(parts[1])
+                local maxCapacity = tonumber(parts[2])
+                if currentCapacity and maxCapacity then
+                    return currentCapacity, maxCapacity
+                else
+                    warn("Failed to convert inventory capacity to numbers: " .. allItem.Text)
+                    return nil, nil
+                end
+            else
+                warn("Inventory Text format ain't X/Y: " .. allItem.Text)
+                return nil, nil
+            end
+        else
+            warn("AllItem ain't a TextLabel, fix your path!")
+            return nil, nil
+        end
+    end
+
     local function startAutoFarm()
         isAutoFarming = true
         autoFarmStatusParagraph:SetDesc("สถานะ: กำลังเริ่มต้น...")
@@ -364,6 +403,19 @@ return function(Tab, Window, WindUI, TeleportService)
                         -- After the loop, if the cow is now transparent, add it to farmed list
                         if nearestCow.LocalTransparencyModifier >= 1 then
                             table.insert(cowsFarmedThisCycle, nearestCow)
+
+                            -- Check inventory after each successful farm
+                            local currentCapacity, maxCapacity = checkInventoryCapacity()
+                            if currentCapacity and maxCapacity and currentCapacity >= maxCapacity then
+                                autoFarmStatusParagraph:SetDesc("ช่องเก็บของเต็ม! กำลังวาร์ปไปจุดรับซื้อ...")
+                                WindUI:Notify({ Title = "ออโต้ฟาร์มเนื้อ", Content = "ช่องเก็บของเต็ม! กำลังวาร์ปไปจุดรับซื้อ", Icon = "package" })
+                                TeleportService:moveTo(SELL_POINT_LOCATION)
+                                task.wait(1) -- Wait for teleport to complete
+                                autoFarmStatusParagraph:SetDesc("ช่องเก็บของเต็ม! หยุดระบบออโต้ฟาร์ม")
+                                WindUI:Notify({ Title = "ออโต้ฟาร์มเนื้อ", Content = "ช่องเก็บของเต็ม! หยุดระบบออโต้ฟาร์ม", Icon = "package-x" })
+                                stopAutoFarm() -- Stop the auto-farm
+                                return -- Exit the task.spawn function
+                            end
                         else
                             -- If it didn't become transparent after max attempts, it means interaction failed or cow didn't disappear.
                             -- We still need a small wait before finding the next cow.
