@@ -436,7 +436,7 @@ return function(Tab, Window, WindUI, TeleportService)
                                 autoFarmStatusParagraph:SetDesc("ช่องเก็บของเต็ม! กำลังวาร์ปไปจุดรับซื้อ...")
                                 WindUI:Notify({ Title = "ออโต้ฟาร์มเนื้อ", Content = "ช่องเก็บของเต็ม! กำลังวาร์ปไปจุดรับซื้อ", Icon = "package" })
                                 TeleportService:moveTo(SELL_POINT_LOCATION)
-                                task.wait(1) -- Wait for teleport to complete
+                                task.wait(0.1) -- Wait for teleport to complete
                                 autoFarmStatusParagraph:SetDesc("ช่องเก็บของเต็ม! หยุดระบบออโต้ฟาร์ม")
                                 WindUI:Notify({ Title = "ออโต้ฟาร์มเนื้อ", Content = "ช่องเก็บของเต็ม! หยุดระบบออโต้ฟาร์ม", Icon = "package-x" })
                                 stopAutoFarm() -- Stop the auto-farm
@@ -481,6 +481,17 @@ return function(Tab, Window, WindUI, TeleportService)
             autoFarmStatusParagraphTrial:SetDesc("สถานะ: กำลังเทเลพอร์ตไปยังฟาร์มเนื้อ...")
             TeleportService:moveTo(meatFarmLocation)
             task.wait(1) -- Wait for teleport to complete
+
+            -- Find the first cow and teleport to it
+            local firstCow = findNearestCow()
+            if firstCow then
+                autoFarmStatusParagraphTrial:SetDesc("สถานะ: กำลังวาร์ปไปยังวัวตัวแรก...")
+                moveToTarget(firstCow) -- Use moveToTarget to get to the cow's position
+                task.wait(0.5) -- Wait for movement
+            else
+                autoFarmStatusParagraphTrial:SetDesc("สถานะ: ไม่พบวัวตัวแรกในบริเวณฟาร์ม...")
+                -- If no cow found, it will just start scanning from meatFarmLocation
+            end
 
             while isTrialAutoFarming do -- Continuous farming loop
                 local nearestCow = findNearestCow()
