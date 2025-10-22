@@ -361,6 +361,7 @@ return function(Tab, Window, WindUI, TeleportService)
     end
 
     local SELL_POINT_LOCATION = Vector3.new(373.72, 7.15, 184.99) -- Coordinates for "ร้านรับซื้อ"
+    local CRAFTING_ACTIVATION_POINT = Vector3.new(-1442.04, 16.53, -88.63) -- Coordinates for Crafting Activation Point
 
     local function checkInventoryCapacity()
         local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui", 5)
@@ -532,9 +533,44 @@ return function(Tab, Window, WindUI, TeleportService)
                     -- Inventory check (keep this)
                     local currentCapacity, maxCapacity = checkInventoryCapacity()
                     if currentCapacity and maxCapacity and currentCapacity >= maxCapacity then
-                        autoFarmStatusParagraphTrial:SetDesc("ช่องเก็บของเต็ม! หยุดระบบออโต้ฟาร์ม (ทดลอง)")
-                        WindUI:Notify({ Title = "ออโต้ฟาร์มเนื้อ (ทดลอง)", Content = "ช่องเก็บของเต็ม! หยุดระบบออโต้ฟาร์ม (ทดลอง)", Icon = "package-x" })
-                        stopTrialAutoFarm() -- Stop the auto-farm
+                        autoFarmStatusParagraphTrial:SetDesc("ช่องเก็บของเต็ม! กำลังวาร์ปไปจุดเปิด Crafting...")
+                        WindUI:Notify({ Title = "ออโต้ฟาร์มเนื้อ (ทดลอง)", Content = "ช่องเก็บของเต็ม! กำลังวาร์ปไปจุดเปิด Crafting", Icon = "package" })
+                        TeleportService:moveTo(CRAFTING_ACTIVATION_POINT)
+                        task.wait(1) -- Wait for teleport to complete
+
+                        autoFarmStatusParagraphTrial:SetDesc("กำลังพยายามเปิด UI Crafting...")
+                        local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui", 5)
+                        local craftingUI = playerGui and playerGui:FindFirstChild("Menu") and playerGui:FindFirstChild("Menu"):FindFirstChild("Crafting")
+
+                        local craftingPromptPart = workspace.KraftPowerStrength.Meat["Mesh/Pad"]
+                        local activationAttempts = 0
+                        local maxActivationAttempts = 20 -- Max attempts to open crafting UI
+
+                        if craftingPromptPart and craftingUI then
+                            while not craftingUI.Visible and activationAttempts < maxActivationAttempts do
+                                if triggerProximityPromptTrial(craftingPromptPart) then
+                                    autoFarmStatusParagraphTrial:SetDesc("สถานะ: พยายามเปิด UI Crafting (ครั้งที่ " .. (activationAttempts + 1) .. ")")
+                                    task.wait(0.5) -- Short wait between attempts
+                                else
+                                    autoFarmStatusParagraphTrial:SetDesc("สถานะ: ไม่พบ Prompt เปิด Crafting หรือ Prompt ไม่ทำงาน")
+                                    break -- Break if prompt interaction fails
+                                end
+                                activationAttempts = activationAttempts + 1
+                            end
+
+                            if craftingUI.Visible then
+                                autoFarmStatusParagraphTrial:SetDesc("UI Crafting เปิดแล้ว! หยุดระบบออโต้ฟาร์ม (ทดลอง)")
+                                WindUI:Notify({ Title = "ออโต้ฟาร์มเนื้อ (ทดลอง)", Content = "UI Crafting เปิดแล้ว! หยุดระบบออโต้ฟาร์ม (ทดลอง)", Icon = "package-x" })
+                            else
+                                autoFarmStatusParagraphTrial:SetDesc("ไม่สามารถเปิด UI Crafting ได้! หยุดระบบออโต้ฟาร์ม (ทดลอง)")
+                                WindUI:Notify({ Title = "ออโต้ฟาร์มเนื้อ (ทดลอง)", Content = "ไม่สามารถเปิด UI Crafting ได้! หยุดระบบออโต้ฟาร์ม (ทดลอง)", Icon = "package-x" })
+                            end
+                        else
+                            autoFarmStatusParagraphTrial:SetDesc("ไม่พบส่วนประกอบ UI Crafting หรือ Prompt! หยุดระบบออโต้ฟาร์ม (ทดลอง)")
+                            WindUI:Notify({ Title = "ออโต้ฟาร์มเนื้อ (ทดลอง)", Content = "ไม่พบส่วนประกอบ UI Crafting หรือ Prompt! หยุดระบบออโต้ฟาร์ม (ทดลอง)", Icon = "package-x" })
+                        end
+                        
+                        stopTrialAutoFarm() -- Stop the auto-farm regardless of success
                         return -- Exit the task.spawn function
                     end
 
