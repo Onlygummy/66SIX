@@ -535,6 +535,22 @@ return function(Tab, Window, WindUI, TeleportService)
                     if currentCapacity and maxCapacity and currentCapacity >= maxCapacity then
                         autoFarmStatusParagraphTrial:SetDesc("ช่องเก็บของเต็ม! กำลังวาร์ปไปจุดเปิด Crafting...")
                         WindUI:Notify({ Title = "ออโต้ฟาร์มเนื้อ (ทดลอง)", Content = "ช่องเก็บของเต็ม! กำลังวาร์ปไปจุดเปิด Crafting", Icon = "package" })
+                        
+                        task.wait(3) -- Wait for 3 seconds before teleporting
+
+                        -- Store original Humanoid state
+                        local playerHumanoid = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                        local originalPlatformStand = playerHumanoid and playerHumanoid.PlatformStand
+                        local originalWalkSpeed = playerHumanoid and playerHumanoid.WalkSpeed
+                        local originalJumpPower = playerHumanoid and playerHumanoid.JumpPower
+
+                        -- Freeze player
+                        if playerHumanoid then
+                            playerHumanoid.PlatformStand = true
+                            playerHumanoid.WalkSpeed = 0
+                            playerHumanoid.JumpPower = 0
+                        end
+
                         TeleportService:moveTo(CRAFTING_ACTIVATION_POINT)
                         task.wait(1) -- Wait for teleport to complete
 
@@ -570,6 +586,13 @@ return function(Tab, Window, WindUI, TeleportService)
                             WindUI:Notify({ Title = "ออโต้ฟาร์มเนื้อ (ทดลอง)", Content = "ไม่พบส่วนประกอบ UI Crafting หรือ Prompt! หยุดระบบออโต้ฟาร์ม (ทดลอง)", Icon = "package-x" })
                         end
                         
+                        -- Restore original Humanoid state
+                        if playerHumanoid then
+                            playerHumanoid.PlatformStand = originalPlatformStand
+                            playerHumanoid.WalkSpeed = originalWalkSpeed
+                            playerHumanoid.JumpPower = originalJumpPower
+                        end
+
                         stopTrialAutoFarm() -- Stop the auto-farm regardless of success
                         return -- Exit the task.spawn function
                     end
