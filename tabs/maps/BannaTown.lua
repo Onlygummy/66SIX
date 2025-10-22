@@ -283,7 +283,7 @@ return function(Tab, Window, WindUI, TeleportService)
         if not cowContainer then return nil end
 
         for _, child in pairs(cowContainer:GetChildren()) do
-            if child:IsA("Model") and child:FindFirstChild("Cube") then -- Assuming cows are models with a 'Cube' part
+            if child:IsA("Model") and child:FindFirstChild("Cube") and child:FindFirstChild("Cube").LocalTransparencyModifier < 1 then -- Assuming cows are models with a 'Cube' part and are visible
                 local cowPart = child:FindFirstChild("Cube")
                 if cowPart then
                     local cowPos = cowPart.Position
