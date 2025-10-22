@@ -62,9 +62,14 @@ return function(Tab, Window, WindUI, TeleportService)
 
         -- If a valid prompt is found, trigger it instantly
         if prompt and prompt.Enabled then
+            local originalHoldDuration = prompt.HoldDuration -- Store original
+            prompt.HoldDuration = 0 -- Set to 0 for instant activation
+
             prompt:InputHoldBegin()
-            -- No task.wait(prompt.HoldDuration) here for instant interaction
+            -- No manual wait here, as user wants it instant
             prompt:InputHoldEnd()
+
+            prompt.HoldDuration = originalHoldDuration -- Restore original
             return true -- Indicate success
         end
         
