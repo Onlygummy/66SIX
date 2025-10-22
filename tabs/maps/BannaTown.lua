@@ -20,8 +20,9 @@ return function(Tab, Window, WindUI, TeleportService)
     local bodyVelocity, bodyGyro
     local flyLoop, noclipLoop
 
-    local function simulateKeyPress(targetPart)
-        if not targetPart then return false end
+    local function triggerProximityPrompt(targetPart)
+        print("triggerProximityPrompt: Called with targetPart = " .. tostring(targetPart.Name))
+        if not targetPart then print("triggerProximityPrompt: targetPart is nil"); return false end
 
         -- Find the ProximityPrompt on the target or its parent
         local prompt = targetPart:FindFirstChildOfClass("ProximityPrompt")
@@ -29,14 +30,22 @@ return function(Tab, Window, WindUI, TeleportService)
             prompt = targetPart.Parent and targetPart.Parent:FindFirstChildOfClass("ProximityPrompt")
         end
 
-        -- If a valid prompt is found, trigger it using its own HoldDuration
-        if prompt and prompt.Enabled then
-            prompt:InputHoldBegin()
-            if prompt.HoldDuration > 0 then
-                task.wait(prompt.HoldDuration)
+        if prompt then
+            print("triggerProximityPrompt: Found prompt. Name = " .. tostring(prompt.Name) .. ", Enabled = " .. tostring(prompt.Enabled) .. ", HoldDuration = " .. tostring(prompt.HoldDuration))
+            if prompt.Enabled then
+                print("triggerProximityPrompt: Calling InputHoldBegin()")
+                prompt:InputHoldBegin()
+                if prompt.HoldDuration > 0 then
+                    task.wait(prompt.HoldDuration)
+                end
+                prompt:InputHoldEnd()
+                print("triggerProximityPrompt: Called InputHoldEnd()")
+                return true -- Indicate success
+            else
+                print("triggerProximityPrompt: Prompt is not Enabled.")
             end
-            prompt:InputHoldEnd()
-            return true -- Indicate success
+        else
+            print("triggerProximityPrompt: No ProximityPrompt found on targetPart or its parent.")
         end
         
         return false -- Indicate failure
@@ -338,7 +347,10 @@ return function(Tab, Window, WindUI, TeleportService)
                         local interactionAttempts = 0
                         local maxInteractionAttempts = 10 -- Prevent infinite loops if cow never disappears
                         while nearestCow.LocalTransparencyModifier < 1 and interactionAttempts < maxInteractionAttempts do
-                            if triggerProximityPrompt(nearestCow) then
+                            print("startAutoFarm: Attempting to trigger prompt for " .. nearestCow.Name .. " (Attempt " .. (interactionAttempts + 1) .. ")")
+                            local success = triggerProximityPrompt(nearestCow)
+                            print("startAutoFarm: triggerProximityPrompt returned: " .. tostring(success))
+                            if success then
                                 autoFarmStatusParagraph:SetDesc("สถานะ: เก็บเกี่ยว " .. nearestCow.Parent.Name .. " (ครั้งที่ " .. (interactionAttempts + 1) .. ")")
                                 task.wait(currentCooldown) -- Wait for cooldown between triggers on the same cow
                             else
