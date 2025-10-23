@@ -447,17 +447,6 @@ return function(Tab, Window, WindUI, TeleportService)
             TeleportService:moveTo(meatFarmLocation)
             task.wait(1) -- Wait for teleport to complete
 
-            -- Find the first cow and teleport to it
-            local firstCow = findNearestCow()
-            if firstCow then
-                autoFarmStatusParagraph:SetDesc("สถานะ: กำลังวาร์ปไปยังวัวตัวแรก...")
-                moveToTarget(firstCow) -- Use moveToTarget to get to the cow's position
-                task.wait(0.5) -- Wait for movement
-            else
-                autoFarmStatusParagraph:SetDesc("สถานะ: ไม่พบวัวตัวแรกในบริเวณฟาร์ม...")
-                -- If no cow found, it will just start scanning from meatFarmLocation
-            end
-
             while isAutoFarming do -- Continuous farming loop
                 local nearestCow = findNearestCow()
 
@@ -466,21 +455,31 @@ return function(Tab, Window, WindUI, TeleportService)
                     moveToTarget(nearestCow)
                     task.wait(0.5) -- Wait for movement
 
-                    autoFarmStatusParagraph:SetDesc("สถานะ: กำลังเก็บเกี่ยว " .. nearestCow.Parent.Name .. "...")
-                    
-                    local interactionAttempts = 0
-                    local maxInteractionAttempts = 10
-                    while nearestCow.LocalTransparencyModifier < 1 and interactionAttempts < maxInteractionAttempts do
-                        if triggerProximityPromptTrial(nearestCow) then -- Use trial version prompt
-                            autoFarmStatusParagraph:SetDesc("สถานะ: เก็บเกี่ยว " .. nearestCow.Parent.Name .. " (ครั้งที่ " .. (interactionAttempts + 1) .. ")")
-                            task.wait(1) -- Fixed cooldown for trial
-                        else
-                            break
-                        end
-                        interactionAttempts = interactionAttempts + 1
+                    local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                    if humanoid then
+                        -- Safely perform the harvest while preventing animations
+                        pcall(function()
+                            humanoid.PlatformStand = true
+                            autoFarmStatusParagraph:SetDesc("สถานะ: กำลังเก็บเกี่ยว " .. nearestCow.Parent.Name .. "...")
+                            
+                            local interactionAttempts = 0
+                            local maxInteractionAttempts = 10
+                            -- Loop harvest until cow is gone or max attempts reached
+                            while isAutoFarming and nearestCow.Parent and nearestCow.LocalTransparencyModifier < 1 and interactionAttempts < maxInteractionAttempts do
+                                if triggerProximityPromptTrial(nearestCow) then
+                                    autoFarmStatusParagraph:SetDesc("สถานะ: เก็บเกี่ยว " .. nearestCow.Parent.Name .. " (ครั้งที่ " .. (interactionAttempts + 1) .. ")")
+                                    task.wait(1) -- Wait 1 second between each trigger
+                                else
+                                    break -- Exit if prompt fails
+                                end
+                                interactionAttempts = interactionAttempts + 1
+                            end
+                        end)
+                        -- Always reset platform stand state, even if harvesting fails
+                        humanoid.PlatformStand = false
                     end
 
-                    -- Inventory check (keep this)
+                    -- Inventory check (runs after attempting to harvest a cow)
                     local currentCapacity, maxCapacity = checkInventoryCapacity()
                     if currentCapacity and maxCapacity and currentCapacity >= maxCapacity then
                         autoFarmStatusParagraph:SetDesc("ช่องเก็บของเต็ม! กำลังวาร์ปไปจุดเปิด Crafting...")
@@ -489,7 +488,7 @@ return function(Tab, Window, WindUI, TeleportService)
                         task.wait(3) -- Wait for 3 seconds before teleporting
 
                         -- Store original Humanoid state
-                        local playerHumanoid = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                        local playerHumanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
                         local originalPlatformStand = playerHumanoid and playerHumanoid.PlatformStand
                         local originalWalkSpeed = playerHumanoid and playerHumanoid.WalkSpeed
                         local originalJumpPower = playerHumanoid and playerHumanoid.JumpPower
@@ -546,16 +545,10 @@ return function(Tab, Window, WindUI, TeleportService)
                         stopAutoFarm() -- Stop the auto-farm regardless of success
                         return -- Exit the task.spawn function
                     end
-
-                    -- If cow disappeared, it's done. If not, it means interaction failed or max attempts reached.
-                    -- In trial, we don't track farmed cows, so it will be re-targeted if it reappears.
-                    -- Just wait for cooldown before next findNearestCow()
-                    task.wait(1) -- Fixed cooldown for trial before finding next cow
-
                 else
                     -- No cow found, wait briefly and try again
                     autoFarmStatusParagraph:SetDesc("สถานะ: ไม่พบวัวที่เก็บเกี่ยวได้ในบริเวณ กำลังค้นหา...")
-                    task.wait(1) -- Wait before re-scanning
+                    task.wait(2) -- Increased wait time when no cows are found to be less spammy
                 end
             end
         end)
