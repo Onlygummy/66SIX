@@ -461,28 +461,19 @@ return function(Tab, Window, WindUI, TeleportService)
                     moveToTarget(nearestCow)
                     task.wait(0.5) -- Wait for movement
 
-                    local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-                    if humanoid then
-                        -- Safely perform the harvest while preventing animations
-                        pcall(function()
-                            humanoid.PlatformStand = true
-                            autoFarmStatusParagraph:SetDesc("สถานะ: กำลังเก็บเกี่ยว " .. nearestCow.Parent.Name .. "...")
-                            
-                            local interactionAttempts = 0
-                            local maxInteractionAttempts = 10
-                            -- Loop harvest until cow is gone or max attempts reached
-                            while isAutoFarming and nearestCow.Parent and nearestCow.LocalTransparencyModifier < 1 and interactionAttempts < maxInteractionAttempts do
-                                if triggerProximityPromptTrial(nearestCow) then
-                                    autoFarmStatusParagraph:SetDesc("สถานะ: เก็บเกี่ยว " .. nearestCow.Parent.Name .. " (ครั้งที่ " .. (interactionAttempts + 1) .. ")")
-                                    task.wait(1) -- Wait 1 second between each trigger
-                                else
-                                    break -- Exit if prompt fails
-                                end
-                                interactionAttempts = interactionAttempts + 1
-                            end
-                        end)
-                        -- Always reset platform stand state, even if harvesting fails
-                        humanoid.PlatformStand = false
+                    autoFarmStatusParagraph:SetDesc("สถานะ: กำลังเก็บเกี่ยว " .. nearestCow.Parent.Name .. "...")
+                    
+                    local interactionAttempts = 0
+                    local maxInteractionAttempts = 10
+                    -- Loop harvest until cow is gone or max attempts reached
+                    while isAutoFarming and nearestCow.Parent and nearestCow.LocalTransparencyModifier < 1 and interactionAttempts < maxInteractionAttempts do
+                        if triggerProximityPromptTrial(nearestCow) then
+                            autoFarmStatusParagraph:SetDesc("สถานะ: เก็บเกี่ยว " .. nearestCow.Parent.Name .. " (ครั้งที่ " .. (interactionAttempts + 1) .. ")")
+                            task.wait(1) -- Wait 1 second between each trigger
+                        else
+                            break -- Exit if prompt fails
+                        end
+                        interactionAttempts = interactionAttempts + 1
                     end
 
                     -- Inventory check (runs after attempting to harvest a cow)
