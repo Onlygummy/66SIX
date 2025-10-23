@@ -77,10 +77,11 @@ return function(Tab, Window, WindUI, TeleportService)
     end
 
     local function getSpecificShopPrompt()
-        -- Path updated based on user feedback for better stability.
+        -- Path updated again based on user feedback for better accuracy.
         local attachment
         local success, result = pcall(function()
-            attachment = workspace.Market.Model:GetChildren()[2]["Mesh/Pad"].Attachment
+            -- This path is more direct and avoids using GetChildren() with an index.
+            attachment = workspace.Market.Model.Model["Mesh/Pad"].Attachment
         end)
 
         if not success or not attachment then
@@ -179,7 +180,7 @@ return function(Tab, Window, WindUI, TeleportService)
     Tab:Toggle({
         Title = "สถานะเต็มตลอดเวลา",
         Icon = "heart-pulse",
-        Desc = "ตั้งค่า Hunger และ Thirsty ของคุณให้เต็ม 100 ตลอดเวลา (ทุก 1 นาที)",
+        Desc = "ตั้งค่า Hunger และ Thristy ของคุณให้เต็ม 100 ตลอดเวลา (ทุก 0.5 วินาที)",
         Value = false,
         Callback = function(value)
             if value then
@@ -192,10 +193,10 @@ return function(Tab, Window, WindUI, TeleportService)
                         local hunger = LocalPlayer:FindFirstChild("Hunger")
                         if hunger then hunger.Value = 100 end
 
-                        local thirsty = LocalPlayer:FindFirstChild("Thirsty")
+                        local thirsty = LocalPlayer:FindFirstChild("Thristy")
                         if thirsty then thirsty.Value = 100 end
                         
-                        task.wait(60) -- UPDATED to 60 seconds
+                        task.wait(0.5)
                     end
                 end)
             else
