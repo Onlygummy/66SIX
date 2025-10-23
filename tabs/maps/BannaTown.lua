@@ -77,21 +77,22 @@ return function(Tab, Window, WindUI, TeleportService)
     end
 
     local function getSpecificShopPrompt()
-        -- WARNING: This path uses GetChildren() by index, which is extremely fragile and prone to breaking if the game's hierarchy changes.
-        local obj77 = workspace:GetChildren()[77]
-        if not obj77 then warn("getSpecificShopPrompt: workspace:GetChildren()[77] not found!"); return nil end
+        -- Path updated based on user feedback for better stability.
+        local attachment
+        local success, result = pcall(function()
+            attachment = workspace.Market.Model:GetChildren()[2]["Mesh/Pad"].Attachment
+        end)
 
-        local obj3 = obj77:GetChildren()[3]
-        if not obj3 then warn("getSpecificShopPrompt: workspace:GetChildren()[77]:GetChildren()[3] not found!"); return nil end
-
-        local meshPad = obj3:FindFirstChild("Mesh/Pad")
-        if not meshPad then warn("getSpecificShopPrompt: Mesh/Pad not found!"); return nil end
-
-        local attachment = meshPad:FindFirstChild("Attachment")
-        if not attachment then warn("getSpecificShopPrompt: Attachment not found!"); return nil end
+        if not success or not attachment then
+            warn("getSpecificShopPrompt: Failed to find the attachment using the new path. Error: " .. tostring(result))
+            return nil
+        end
 
         local prompt = attachment:FindFirstChildOfClass("ProximityPrompt")
-        if not prompt then warn("getSpecificShopPrompt: ProximityPrompt not found!"); return nil end
+        if not prompt then
+            warn("getSpecificShopPrompt: ProximityPrompt not found in the attachment!")
+            return nil
+        end
 
         return prompt
     end
@@ -299,7 +300,7 @@ return function(Tab, Window, WindUI, TeleportService)
     -- ================================= --
     local AutoFarmMeatSection = Tab:Section({
         Title = "ออโต้ฟาร์ม",
-        Icon = "cow",
+        Icon = "loader-pinwheel",
         Opened = true
     })
 
@@ -543,7 +544,6 @@ return function(Tab, Window, WindUI, TeleportService)
 
     AutoFarmMeatSection:Toggle({
         Title = "เปิด/ปิด ออโต้ฟาร์ม",
-        Desc = "เปิด/ปิดระบบฟาร์มวัวอัตโนมัติ (เก็บเกี่ยวทันที, Cooldown 1 วินาที)",
         Value = false,
         Callback = function(value)
             if value then
@@ -558,21 +558,40 @@ return function(Tab, Window, WindUI, TeleportService)
 
     local ShopManagementSection = Tab:Section({
         Title = "การจัดการร้านค้า",
-        Icon = "store", -- A suitable icon
+        Icon = "store",
         Opened = true
     })
 
+    local forceShopOpenThread = nil -- Changed variable name for clarity
+
     ShopManagementSection:Toggle({
-        Title = "เปิด/ปิดร้านค้า",
-        Desc = "บังคับเปิดหรือปิด ProximityPrompt ของร้านค้า",
+        Title = "บังคับเปิดร้านค้าตลอดเวลา",
         Value = false, -- Default to off
         Callback = function(value)
-            local shopPrompt = getSpecificShopPrompt()
-            if shopPrompt then
-                shopPrompt.Enabled = value
-                WindUI:Notify({ Title = "การจัดการร้านค้า", Content = "Prompt ร้านค้าถูกตั้งค่าเป็น: " .. tostring(value), Icon = "check" })
+            if value then
+                -- Toggle is ON: Start a new thread with a while loop
+                if forceShopOpenThread then
+                    task.cancel(forceShopOpenThread) -- Cancel any existing thread
+                end
+
+                forceShopOpenThread = task.spawn(function()
+                    while true do
+                        local shopPrompt = getSpecificShopPrompt()
+                        if shopPrompt and not shopPrompt.Enabled then
+                            shopPrompt.Enabled = true
+                        end
+                        task.wait(0.5) -- Check only twice per second
+                    end
+                end)
+                WindUI:Notify({ Title = "การจัดการร้านค้า", Content = "เปิดใช้งานโหมดบังคับเปิดร้านค้า", Icon = "lock" })
+
             else
-                WindUI:Notify({ Title = "การจัดการร้านค้า", Content = "ไม่พบ Prompt ร้านค้าตาม Path ที่ระบุ!", Icon = "x" })
+                -- Toggle is OFF: Stop the thread
+                if forceShopOpenThread then
+                    task.cancel(forceShopOpenThread)
+                    forceShopOpenThread = nil
+                end
+                WindUI:Notify({ Title = "การจัดการร้านค้า", Content = "ปิดใช้งาน, ร้านค้าจะทำงานตามปกติ", Icon = "unlock" })
             end
         end
     })
