@@ -186,7 +186,7 @@ return function(Tab, Window, WindUI, TeleportService)
     })
 
     local buildingLocations = {
-        { Name = "ร้านรับซื้อ", Pos = Vector3.new(373.72, 7.15, 184.99) },
+        { Name = "ร้านรับซื้อ", Pos = Vector3.new(638.69, 6.56, 171.37) },
         { Name = "ร้านขายอาหาร", Pos = Vector3.new(767.23, 6.74, 175.34) },
         { Name = "ร้านขายอุปกรณ์", Pos = Vector3.new(-303.57, 6.81, 1.26) }
     }
