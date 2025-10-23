@@ -511,7 +511,7 @@ return function(Tab, Window, WindUI, TeleportService)
                         if craftingPromptPart and craftingUI then
                             while not craftingUI.Visible and activationAttempts < maxActivationAttempts do
                                 if triggerProximityPromptTrial(craftingPromptPart) then
-                                    autoFarmStatusParagraph:SetDesc("สถานะ: พยายามเปิด UI Crafting (ครั้งที่ " .. (activationAttempts + 1) .. ")")
+                                    autoFarmStatusParagraph:SetDesc("สถานะ: พยายามเปิด UI Crafting (ครั้งที่ " .. (interactionAttempts + 1) .. ")")
                                     task.wait(0.5) -- Short wait between attempts
                                 else
                                     autoFarmStatusParagraph:SetDesc("สถานะ: ไม่พบ Prompt เปิด Crafting หรือ Prompt ไม่ทำงาน")
@@ -542,6 +542,9 @@ return function(Tab, Window, WindUI, TeleportService)
                         stopAutoFarm() -- Stop the auto-farm regardless of success
                         return -- Exit the task.spawn function
                     end
+
+                    autoFarmStatusParagraph:SetDesc("สถานะ: หน่วงเวลาหลังเก็บเกี่ยว...")
+                    task.wait(2.5) -- Add a delay to mimic animation time + travel time
                 else
                     -- No cow found, wait briefly and try again
                     autoFarmStatusParagraph:SetDesc("สถานะ: ไม่พบวัวที่เก็บเกี่ยวได้ในบริเวณ กำลังค้นหา...")
