@@ -170,6 +170,11 @@ return function(Tab, Window, WindUI, TeleportService)
             Max = 200
         },
         Step = 1,
+        Callback = function(value)
+            flySpeed = value
+        end
+    })
+
     local infiniteStatsThread = nil
     Tab:Toggle({
         Title = "สถานะเต็มตลอดเวลา",
