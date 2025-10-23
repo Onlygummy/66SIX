@@ -170,8 +170,37 @@ return function(Tab, Window, WindUI, TeleportService)
             Max = 200
         },
         Step = 1,
+    local infiniteStatsThread = nil
+    Tab:Toggle({
+        Title = "สถานะเต็มตลอดเวลา",
+        Icon = "heart-pulse",
+        Desc = "ตั้งค่า Hunger และ Thirsty ของคุณให้เต็ม 100 ตลอดเวลา (ทุก 1 นาที)",
+        Value = false,
         Callback = function(value)
-            flySpeed = value
+            if value then
+                -- Toggle is ON
+                if infiniteStatsThread then task.cancel(infiniteStatsThread) end -- Cancel previous thread just in case
+
+                infiniteStatsThread = task.spawn(function()
+                    WindUI:Notify({ Title = "สถานะ", Content = "เปิดใช้งานโหมดสถานะเต็ม", Icon = "check-circle" })
+                    while true do
+                        local hunger = LocalPlayer:FindFirstChild("Hunger")
+                        if hunger then hunger.Value = 100 end
+
+                        local thirsty = LocalPlayer:FindFirstChild("Thirsty")
+                        if thirsty then thirsty.Value = 100 end
+                        
+                        task.wait(60) -- UPDATED to 60 seconds
+                    end
+                end)
+            else
+                -- Toggle is OFF
+                if infiniteStatsThread then
+                    task.cancel(infiniteStatsThread)
+                    infiniteStatsThread = nil
+                    WindUI:Notify({ Title = "สถานะ", Content = "ปิดใช้งานโหมดสถานะเต็ม", Icon = "x-circle" })
+                end
+            end
         end
     })
 
