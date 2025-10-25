@@ -469,7 +469,7 @@ return function(Tab, Window, WindUI, TeleportService)
                     while isAutoFarming and nearestCow.Parent and nearestCow.LocalTransparencyModifier < 1 and interactionAttempts < maxInteractionAttempts do
                         if triggerProximityPromptTrial(nearestCow) then
                             autoFarmStatusParagraph:SetDesc("สถานะ: เก็บเกี่ยว " .. nearestCow.Parent.Name .. " (ครั้งที่ " .. (interactionAttempts + 1) .. ")")
-                            task.wait(0.5) -- Wait 1 second between each trigger
+                            task.wait(1) -- Wait 1 second between each trigger
                         else
                             break -- Exit if prompt fails
                         end
@@ -482,7 +482,7 @@ return function(Tab, Window, WindUI, TeleportService)
                         autoFarmStatusParagraph:SetDesc("ช่องเก็บของเต็ม! กำลังวาร์ปไปจุดเปิด Crafting...")
                         WindUI:Notify({ Title = "ออโต้ฟาร์ม", Content = "ช่องเก็บของเต็ม! กำลังวาร์ปไปจุดเปิด Crafting", Icon = "package" })
                         
-                        task.wait(3) -- Wait for 3 seconds before teleporting
+                        task.wait(1) -- Wait for 3 seconds before teleporting
 
                         -- Store original Humanoid state
                         local playerHumanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
