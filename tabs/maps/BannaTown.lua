@@ -544,11 +544,11 @@ return function(Tab, Window, WindUI, TeleportService)
                     end
 
                     autoFarmStatusParagraph:SetDesc("สถานะ: หน่วงเวลาหลังเก็บเกี่ยว...")
-                    task.wait(1) -- Add a delay to mimic animation time + travel time
+                    task.wait(1.5) -- Add a delay to mimic animation time + travel time
                 else
                     -- No cow found, wait briefly and try again
                     autoFarmStatusParagraph:SetDesc("สถานะ: ไม่พบวัวที่เก็บเกี่ยวได้ในบริเวณ กำลังค้นหา...")
-                    task.wait(2) -- Increased wait time when no cows are found to be less spammy
+                    task.wait(0.1) -- Increased wait time when no cows are found to be less spammy
                 end
             end
         end)
