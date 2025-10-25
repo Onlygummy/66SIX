@@ -459,7 +459,7 @@ return function(Tab, Window, WindUI, TeleportService)
                 if nearestCow then
                     autoFarmStatusParagraph:SetDesc("สถานะ: กำลังเคลื่อนที่ไปยัง " .. nearestCow.Parent.Name .. "...")
                     moveToTarget(nearestCow)
-                    task.wait(0.1) -- Wait for movement
+                    task.wait(0.5) -- Wait for movement
 
                     autoFarmStatusParagraph:SetDesc("สถานะ: กำลังเก็บเกี่ยว " .. nearestCow.Parent.Name .. "...")
                     
