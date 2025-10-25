@@ -469,7 +469,7 @@ return function(Tab, Window, WindUI, TeleportService)
                     while isAutoFarming and nearestCow.Parent and nearestCow.LocalTransparencyModifier < 1 and interactionAttempts < maxInteractionAttempts do
                         if triggerProximityPromptTrial(nearestCow) then
                             autoFarmStatusParagraph:SetDesc("สถานะ: เก็บเกี่ยว " .. nearestCow.Parent.Name .. " (ครั้งที่ " .. (interactionAttempts + 1) .. ")")
-                            task.wait(1) -- Wait 1 second between each trigger
+                            task.wait(0.8) -- Wait 1 second between each trigger
                         else
                             break -- Exit if prompt fails
                         end
