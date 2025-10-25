@@ -498,7 +498,7 @@ return function(Tab, Window, WindUI, TeleportService)
                         end
 
                         TeleportService:moveTo(CRAFTING_ACTIVATION_POINT)
-                        task.wait(1) -- Wait for teleport to complete
+                        task.wait(0.8) -- Wait for teleport to complete
 
                         autoFarmStatusParagraph:SetDesc("กำลังพยายามเปิด UI Crafting...")
                         local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui", 5)
