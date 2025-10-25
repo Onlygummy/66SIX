@@ -459,7 +459,7 @@ return function(Tab, Window, WindUI, TeleportService)
                 if nearestCow then
                     autoFarmStatusParagraph:SetDesc("สถานะ: กำลังเคลื่อนที่ไปยัง " .. nearestCow.Parent.Name .. "...")
                     moveToTarget(nearestCow)
-                    task.wait(0.5) -- Wait for movement
+                    task.wait(0.1) -- Wait for movement
 
                     autoFarmStatusParagraph:SetDesc("สถานะ: กำลังเก็บเกี่ยว " .. nearestCow.Parent.Name .. "...")
                     
@@ -469,7 +469,7 @@ return function(Tab, Window, WindUI, TeleportService)
                     while isAutoFarming and nearestCow.Parent and nearestCow.LocalTransparencyModifier < 1 and interactionAttempts < maxInteractionAttempts do
                         if triggerProximityPromptTrial(nearestCow) then
                             autoFarmStatusParagraph:SetDesc("สถานะ: เก็บเกี่ยว " .. nearestCow.Parent.Name .. " (ครั้งที่ " .. (interactionAttempts + 1) .. ")")
-                            task.wait(1) -- Wait 1 second between each trigger
+                            task.wait(0.1) -- Wait 1 second between each trigger
                         else
                             break -- Exit if prompt fails
                         end
@@ -544,7 +544,7 @@ return function(Tab, Window, WindUI, TeleportService)
                     end
 
                     autoFarmStatusParagraph:SetDesc("สถานะ: หน่วงเวลาหลังเก็บเกี่ยว...")
-                    task.wait(2.5) -- Add a delay to mimic animation time + travel time
+                    task.wait(1) -- Add a delay to mimic animation time + travel time
                 else
                     -- No cow found, wait briefly and try again
                     autoFarmStatusParagraph:SetDesc("สถานะ: ไม่พบวัวที่เก็บเกี่ยวได้ในบริเวณ กำลังค้นหา...")
