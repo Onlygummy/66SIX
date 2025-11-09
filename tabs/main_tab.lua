@@ -261,21 +261,24 @@ return function(Tab, Window, WindUI, TeleportService)
         if not isFollowModeActive then return end
 
         -- Part 1: Update Camera (conditional)
-        if isCameraOnTarget and isCameraMode and cameraTarget and cameraTarget.Character and cameraTarget.Character:FindFirstChild("Head") then
-            Camera.CameraType = Enum.CameraType.Scriptable
-            if Camera.CameraType ~= Enum.CameraType.Scriptable then Camera.CameraType = Enum.CameraType.Scriptable end
-            UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+        if isCameraOnTarget then
+            setPlayerScriptsEnabled(false) -- Disable player scripts for manual camera control
+            if isCameraMode and cameraTarget and cameraTarget.Character and cameraTarget.Character:FindFirstChild("Head") then
+                Camera.CameraType = Enum.CameraType.Scriptable
+                if Camera.CameraType ~= Enum.CameraType.Scriptable then Camera.CameraType = Enum.CameraType.Scriptable end
+                UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 
-            local targetPos = cameraTarget.Character.Head.Position
-            if isWPressed then pitch = math.clamp(pitch - cameraSpeed, -math.pi / 3, math.pi / 3) end
-            if isSPressed then pitch = math.clamp(pitch + cameraSpeed, -math.pi / 3, math.pi / 3) end
-            if isAPressed then yaw = yaw + cameraSpeed end
-            if isDPressed then yaw = yaw - cameraSpeed end
+                local targetPos = cameraTarget.Character.Head.Position
+                if isWPressed then pitch = math.clamp(pitch - cameraSpeed, -math.pi / 3, math.pi / 3) end
+                if isSPressed then pitch = math.clamp(pitch + cameraSpeed, -math.pi / 3, math.pi / 3) end
+                if isAPressed then yaw = yaw + cameraSpeed end
+                if isDPressed then yaw = yaw - cameraSpeed end
 
-            local cameraPos = targetPos + CFrame.Angles(0, yaw, 0) * CFrame.Angles(pitch, 0, 0) * Vector3.new(0, 5, zoomDistance)
-            Camera.CFrame = CFrame.new(cameraPos, targetPos)
+                local cameraPos = targetPos + CFrame.Angles(0, yaw, 0) * CFrame.Angles(pitch, 0, 0) * Vector3.new(0, 5, zoomDistance)
+                Camera.CFrame = CFrame.new(cameraPos, targetPos)
+            end
         else
-            -- If camera is not on target, ensure it's set to default so it follows local player
+            setPlayerScriptsEnabled(true) -- Enable player scripts for default camera behavior
             if Camera.CameraType ~= Enum.CameraType.Custom then
                 Camera.CameraType = Enum.CameraType.Custom
             end
@@ -315,15 +318,12 @@ return function(Tab, Window, WindUI, TeleportService)
                     return
                 end
                 
-                -- Store original CFrame for snap-back
                 originalFollowCFrame = rootPart.CFrame
-                isCameraOnTarget = true -- Default camera to target on activation
+                isCameraOnTarget = true
 
-                -- Activate states
                 isCameraMode = true
                 noclipLoop = RunService.Stepped:Connect(function() setNoclip(true) end)
 
-                -- Activate Spy Camera
                 cameraTarget = selectedPlayer
                 yaw, pitch, zoomDistance = 0, 0, 10
                 local function createKeybind(name, key) 
@@ -341,14 +341,13 @@ return function(Tab, Window, WindUI, TeleportService)
                 createKeybind("SpyCameraControlS", Enum.KeyCode.S)
                 createKeybind("SpyCameraControlD", Enum.KeyCode.D)
 
-                -- Start combined loop
                 if followAndCameraLoop then followAndCameraLoop:Disconnect() end
                 followAndCameraLoop = RunService.RenderStepped:Connect(updateFollowAndCamera)
                 
                 WindUI:Notify({ Title = "ติดตาม", Content = "เปิดใช้งานโหมดติดตาม (ใต้ดิน)", Icon = "user-check" })
             else
-                -- Deactivate everything
                 isCameraMode = false
+                setPlayerScriptsEnabled(true) -- Ensure scripts are enabled on exit
 
                 if followAndCameraLoop then followAndCameraLoop:Disconnect(); followAndCameraLoop = nil end
                 if noclipLoop then noclipLoop:Disconnect(); noclipLoop = nil end
@@ -362,7 +361,6 @@ return function(Tab, Window, WindUI, TeleportService)
                 if originalCameraCFrame then Camera.CFrame = originalCameraCFrame end
                 Camera.CameraType = Enum.CameraType.Custom
 
-                -- Snap back to original position
                 if originalFollowCFrame then
                     TeleportService:moveTo(originalFollowCFrame.Position)
                     originalFollowCFrame = nil
