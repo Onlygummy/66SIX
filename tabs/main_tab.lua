@@ -282,6 +282,7 @@ return function(Tab, Window, WindUI, TeleportService)
             local char = LocalPlayer.Character
             if not char or not char:FindFirstChild("HumanoidRootPart") then return end
             local rootPart = char.HumanoidRootPart
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
 
             if value then
                 if not selectedPlayer or not selectedPlayer.Character then
@@ -295,14 +296,24 @@ return function(Tab, Window, WindUI, TeleportService)
                 originalFollowCFrame = rootPart.CFrame
                 noclipLoop = RunService.Stepped:Connect(function() setNoclip(true) end)
 
-                if followLoop then followLoop:Disconnect() end
-                followLoop = RunService.RenderStepped:Connect(updateFollowTeleport)
+                if humanoid then humanoid.PlatformStand = true end -- Enable PlatformStand
+
+                if followLoop then task.cancel(followLoop); followLoop = nil end -- Cancel previous task.spawn loop if any
+                -- Use task.spawn for the loop to control frequency
+                followLoop = task.spawn(function()
+                    while isFollowModeActive do
+                        updateFollowTeleport()
+                        task.wait(0.1) -- Update every 0.1 seconds
+                    end
+                end)
                 
                 WindUI:Notify({ Title = "ติดตาม", Content = "เปิดใช้งานโหมดติดตาม (ใต้ดิน)", Icon = "user-check" })
             else
-                if followLoop then followLoop:Disconnect(); followLoop = nil end
+                if followLoop then task.cancel(followLoop); followLoop = nil end -- Cancel the task.spawn loop
                 if noclipLoop then noclipLoop:Disconnect(); noclipLoop = nil end
                 setNoclip(false)
+
+                if humanoid then humanoid.PlatformStand = false end -- Disable PlatformStand
 
                 if originalFollowCFrame then
                     TeleportService:moveTo(originalFollowCFrame.Position)
