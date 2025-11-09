@@ -309,11 +309,10 @@ return function(Tab, Window, WindUI, TeleportService)
                 lastFollowY = nil -- Reset stable Y position on start
                 noclipLoop = RunService.Stepped:Connect(function() setNoclip(true) end)
 
-                if humanoid then humanoid.PlatformStand = true end
-
                 if followLoop then task.cancel(followLoop); followLoop = nil end
                 followLoop = task.spawn(function()
                     while isFollowModeActive do
+                        if humanoid then humanoid.PlatformStand = true end -- Enforce PlatformStand here
                         updateFollowTeleport()
                         task.wait(0.1)
                     end
