@@ -148,9 +148,10 @@ return function(Tab, Window, WindUI, TeleportService)
             game:GetService("RunService").Heartbeat:Wait()
         end
         
+        WindUI:Notify({ Title = "Fling", Content = "Fling " .. plr.Name .. " แล้ว!", Icon = "arrow-up-right" })
+        task.wait(0.1) -- เพิ่มการหน่วงเวลา
         bv:Destroy()
         ba:Destroy()
-        WindUI:Notify({ Title = "Fling", Content = "Fling " .. plr.Name .. " แล้ว!", Icon = "arrow-up-right" })
     end
 
     -- ================================= --
