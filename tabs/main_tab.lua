@@ -246,6 +246,7 @@ return function(Tab, Window, WindUI, TeleportService)
     local isFollowModeActive = false
     local followLoop, noclipLoop, originalFollowCFrame
     local followDepth = 20 -- Default depth
+    local lastFollowY = nil -- For stabilizing Y-axis
 
     local function setNoclip(enabled)
         if not LocalPlayer.Character then return end
@@ -259,16 +260,27 @@ return function(Tab, Window, WindUI, TeleportService)
     local function updateFollowTeleport()
         if not isFollowModeActive then return end
 
-        -- Teleport Logic
         local rootPart = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         local targetRootPart = selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
 
         if not rootPart or not rootPart.Parent or not targetRootPart then return end
 
-        local distance = (rootPart.Position - targetRootPart.Position).Magnitude
+        local myPos = rootPart.Position
+        local targetPos = targetRootPart.Position
+        local horizontalDistance = (Vector2.new(myPos.X, myPos.Z) - Vector2.new(targetPos.X, targetPos.Z)).Magnitude
 
-        if distance > 3 then
-            local destination = targetRootPart.Position - Vector3.new(0, followDepth, 0) -- Use variable depth
+        if horizontalDistance > 3 then
+            local destination = targetPos - Vector3.new(0, followDepth, 0)
+
+            -- Y-Stabilization Logic
+            if lastFollowY and math.abs(destination.Y - lastFollowY) < 2 then
+                -- If vertical change is small (a bob), use the last stable Y position
+                destination = Vector3.new(destination.X, lastFollowY, destination.Z)
+            else
+                -- If vertical change is large (a jump/fall), update the stable Y position
+                lastFollowY = destination.Y
+            end
+            
             TeleportService:_instant(destination)
         end
     end
@@ -294,26 +306,26 @@ return function(Tab, Window, WindUI, TeleportService)
                 end
                 
                 originalFollowCFrame = rootPart.CFrame
+                lastFollowY = nil -- Reset stable Y position on start
                 noclipLoop = RunService.Stepped:Connect(function() setNoclip(true) end)
 
-                if humanoid then humanoid.PlatformStand = true end -- Enable PlatformStand
+                if humanoid then humanoid.PlatformStand = true end
 
-                if followLoop then task.cancel(followLoop); followLoop = nil end -- Cancel previous task.spawn loop if any
-                -- Use task.spawn for the loop to control frequency
+                if followLoop then task.cancel(followLoop); followLoop = nil end
                 followLoop = task.spawn(function()
                     while isFollowModeActive do
                         updateFollowTeleport()
-                        task.wait(0.1) -- Update every 0.1 seconds
+                        task.wait(0.1)
                     end
                 end)
                 
                 WindUI:Notify({ Title = "ติดตาม", Content = "เปิดใช้งานโหมดติดตาม (ใต้ดิน)", Icon = "user-check" })
             else
-                if followLoop then task.cancel(followLoop); followLoop = nil end -- Cancel the task.spawn loop
+                if followLoop then task.cancel(followLoop); followLoop = nil end
                 if noclipLoop then noclipLoop:Disconnect(); noclipLoop = nil end
                 setNoclip(false)
 
-                if humanoid then humanoid.PlatformStand = false end -- Disable PlatformStand
+                if humanoid then humanoid.PlatformStand = false end
 
                 if originalFollowCFrame then
                     TeleportService:moveTo(originalFollowCFrame.Position)
