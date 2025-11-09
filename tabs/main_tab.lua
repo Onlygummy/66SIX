@@ -269,7 +269,7 @@ return function(Tab, Window, WindUI, TeleportService)
 
         if distance > 3 then
             local destination = targetRootPart.Position - Vector3.new(0, followDepth, 0) -- Use variable depth
-            TeleportService:moveTo(destination)
+            TeleportService:_instant(destination)
         end
     end
 
