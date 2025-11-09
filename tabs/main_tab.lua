@@ -124,6 +124,35 @@ return function(Tab, Window, WindUI, TeleportService)
         WindUI:Notify({ Title = "สำเร็จ", Content = "กำลังเคลื่อนที่ไปยัง " .. targetPlayer.Name, Icon = "check" })
     end
 
+    local function FlingPlayer(plr)
+        if not plr or not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then
+            WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "เป้าหมายไม่ถูกต้องสำหรับการ Fling", Icon = "x" })
+            return
+        end
+
+        local hrp = plr.Character.HumanoidRootPart
+        local bv = Instance.new("BodyVelocity")
+        bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+        bv.Velocity = Vector3.new(math.random(-99999,99999), 99999, math.random(-99999,99999))
+        bv.Parent = hrp
+        
+        local ba = Instance.new("BodyAngularVelocity")
+        ba.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+        ba.AngularVelocity = Vector3.new(math.random(-99999,99999), math.random(-99999,99999), math.random(-99999,99999))
+        ba.Parent = hrp
+        
+        -- Spam Position เพื่อ Fling แรงขึ้น (Bypass 2025)
+        for i = 1, 50 do
+            hrp.AssemblyLinearVelocity = Vector3.new(math.random(-50000,50000), 50000, math.random(-50000,50000))
+            hrp.AssemblyAngularVelocity = Vector3.new(math.random(-50000,50000), math.random(-50000,50000), math.random(-50000,50000))
+            game:GetService("RunService").Heartbeat:Wait()
+        end
+        
+        bv:Destroy()
+        ba:Destroy()
+        WindUI:Notify({ Title = "Fling", Content = "Fling " .. plr.Name .. " แล้ว!", Icon = "arrow-up-right" })
+    end
+
     -- ================================= --
     --      Persistent Event Listeners
     -- ================================= --
@@ -365,6 +394,25 @@ return function(Tab, Window, WindUI, TeleportService)
         Callback = function()
             if selectedPlayer then
                 teleportToPlayer(selectedPlayer)
+            else
+                WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกเป้าหมายก่อน", Icon = "x" })
+            end
+        end
+    })
+
+    -- Section: UNIVERSAL
+    local UniversalSection = Tab:Section({
+        Title = "UNIVERSAL",
+        Icon = "globe",
+        Opened = true
+    })
+
+    UniversalSection:Button({
+        Title = "Fling Target (F3)",
+        Icon = "arrow-up-right",
+        Callback = function()
+            if selectedPlayer then
+                FlingPlayer(selectedPlayer)
             else
                 WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกเป้าหมายก่อน", Icon = "x" })
             end
