@@ -244,9 +244,8 @@ return function(Tab, Window, WindUI, TeleportService)
 
     -- Underground Follow (Teleport) implementation
     local isFollowModeActive = false
-    local followAndCameraLoop, noclipLoop, originalFollowCFrame
+    local followLoop, noclipLoop, originalFollowCFrame
     local followDepth = 20 -- Default depth
-    local isCameraOnTarget = true
 
     local function setNoclip(enabled)
         if not LocalPlayer.Character then return end
@@ -257,34 +256,10 @@ return function(Tab, Window, WindUI, TeleportService)
         end
     end
 
-    local function updateFollowAndCamera()
+    local function updateFollowTeleport()
         if not isFollowModeActive then return end
 
-        -- Part 1: Update Camera (conditional)
-        if isCameraOnTarget then
-            setPlayerScriptsEnabled(false) -- Disable player scripts for manual camera control
-            if isCameraMode and cameraTarget and cameraTarget.Character and cameraTarget.Character:FindFirstChild("Head") then
-                Camera.CameraType = Enum.CameraType.Scriptable
-                if Camera.CameraType ~= Enum.CameraType.Scriptable then Camera.CameraType = Enum.CameraType.Scriptable end
-                UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-
-                local targetPos = cameraTarget.Character.Head.Position
-                if isWPressed then pitch = math.clamp(pitch - cameraSpeed, -math.pi / 3, math.pi / 3) end
-                if isSPressed then pitch = math.clamp(pitch + cameraSpeed, -math.pi / 3, math.pi / 3) end
-                if isAPressed then yaw = yaw + cameraSpeed end
-                if isDPressed then yaw = yaw - cameraSpeed end
-
-                local cameraPos = targetPos + CFrame.Angles(0, yaw, 0) * CFrame.Angles(pitch, 0, 0) * Vector3.new(0, 5, zoomDistance)
-                Camera.CFrame = CFrame.new(cameraPos, targetPos)
-            end
-        else
-            setPlayerScriptsEnabled(true) -- Enable player scripts for default camera behavior
-            if Camera.CameraType ~= Enum.CameraType.Custom then
-                Camera.CameraType = Enum.CameraType.Custom
-            end
-        end
-
-        -- Part 2: Update Player Movement (Teleport)
+        -- Teleport Logic
         local rootPart = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         local targetRootPart = selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
 
@@ -292,7 +267,6 @@ return function(Tab, Window, WindUI, TeleportService)
 
         local distance = (rootPart.Position - targetRootPart.Position).Magnitude
 
-        -- Only teleport if the distance is greater than 3 studs to stay close
         if distance > 3 then
             local destination = targetRootPart.Position - Vector3.new(0, followDepth, 0) -- Use variable depth
             TeleportService:moveTo(destination)
@@ -319,47 +293,16 @@ return function(Tab, Window, WindUI, TeleportService)
                 end
                 
                 originalFollowCFrame = rootPart.CFrame
-                isCameraOnTarget = true
-
-                isCameraMode = true
                 noclipLoop = RunService.Stepped:Connect(function() setNoclip(true) end)
 
-                cameraTarget = selectedPlayer
-                yaw, pitch, zoomDistance = 0, 0, 10
-                local function createKeybind(name, key) 
-                    ContextActionService:BindActionAtPriority(name, function(_, s) 
-                        if UserInputService:GetFocusedTextBox() then return Enum.ContextActionResult.Pass end
-                        if name == "SpyCameraControlW" then isWPressed = (s == Enum.UserInputState.Begin) end
-                        if name == "SpyCameraControlA" then isAPressed = (s == Enum.UserInputState.Begin) end
-                        if name == "SpyCameraControlS" then isSPressed = (s == Enum.UserInputState.Begin) end
-                        if name == "SpyCameraControlD" then isDPressed = (s == Enum.UserInputState.Begin) end
-                        return Enum.ContextActionResult.Sink 
-                    end, false, 2001, key)
-                end
-                createKeybind("SpyCameraControlW", Enum.KeyCode.W)
-                createKeybind("SpyCameraControlA", Enum.KeyCode.A)
-                createKeybind("SpyCameraControlS", Enum.KeyCode.S)
-                createKeybind("SpyCameraControlD", Enum.KeyCode.D)
-
-                if followAndCameraLoop then followAndCameraLoop:Disconnect() end
-                followAndCameraLoop = RunService.RenderStepped:Connect(updateFollowAndCamera)
+                if followLoop then followLoop:Disconnect() end
+                followLoop = RunService.RenderStepped:Connect(updateFollowTeleport)
                 
                 WindUI:Notify({ Title = "ติดตาม", Content = "เปิดใช้งานโหมดติดตาม (ใต้ดิน)", Icon = "user-check" })
             else
-                isCameraMode = false
-                setPlayerScriptsEnabled(true) -- Ensure scripts are enabled on exit
-
-                if followAndCameraLoop then followAndCameraLoop:Disconnect(); followAndCameraLoop = nil end
+                if followLoop then followLoop:Disconnect(); followLoop = nil end
                 if noclipLoop then noclipLoop:Disconnect(); noclipLoop = nil end
                 setNoclip(false)
-
-                ContextActionService:UnbindAction("SpyCameraControlW")
-                ContextActionService:UnbindAction("SpyCameraControlA")
-                ContextActionService:UnbindAction("SpyCameraControlS")
-                ContextActionService:UnbindAction("SpyCameraControlD")
-
-                if originalCameraCFrame then Camera.CFrame = originalCameraCFrame end
-                Camera.CameraType = Enum.CameraType.Custom
 
                 if originalFollowCFrame then
                     TeleportService:moveTo(originalFollowCFrame.Position)
@@ -367,20 +310,6 @@ return function(Tab, Window, WindUI, TeleportService)
                 end
 
                 WindUI:Notify({ Title = "ติดตาม", Content = "ปิดใช้งานแล้ว", Icon = "user-x" })
-            end
-        end
-    })
-
-    ActionSection:Button({
-        Title = "สลับมุมกล้อง",
-        Icon = "camera-switch",
-        Callback = function()
-            if isFollowModeActive then
-                isCameraOnTarget = not isCameraOnTarget
-                local status = isCameraOnTarget and "เป้าหมาย" or "ตัวเอง"
-                WindUI:Notify({ Title = "มุมกล้อง", Content = "สลับมุมกล้องไปที่: " .. status, Icon = "camera-switch" })
-            else
-                WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "ต้องเปิดโหมดติดตามก่อน", Icon = "x" })
             end
         end
     })
@@ -396,7 +325,9 @@ return function(Tab, Window, WindUI, TeleportService)
         Step = 1,
         Callback = function(value)
             followDepth = value
-            WindUI:Notify({ Title = "ความลึก", Content = "ตั้งค่าความลึกเป็น: " .. value .. " studs", Icon = "move-down" })
+            if isFollowModeActive then
+                WindUI:Notify({ Title = "ความลึก", Content = "ตั้งค่าความลึกเป็น: " .. value .. " studs", Icon = "move-down" })
+            end
         end
     })
     ActionSection:Button({
