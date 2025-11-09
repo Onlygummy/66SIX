@@ -247,6 +247,7 @@ return function(Tab, Window, WindUI, TeleportService)
     local followLoop, noclipLoop, originalFollowCFrame
     local followDepth = 20 -- Default depth
     local lastFollowY = nil -- For stabilizing Y-axis
+    local bodyVelocity = nil -- For stability
 
     local function setNoclip(enabled)
         if not LocalPlayer.Character then return end
@@ -294,7 +295,6 @@ return function(Tab, Window, WindUI, TeleportService)
             local char = LocalPlayer.Character
             if not char or not char:FindFirstChild("HumanoidRootPart") then return end
             local rootPart = char.HumanoidRootPart
-            local humanoid = char:FindFirstChildOfClass("Humanoid")
 
             if value then
                 if not selectedPlayer or not selectedPlayer.Character then
@@ -306,13 +306,19 @@ return function(Tab, Window, WindUI, TeleportService)
                 end
                 
                 originalFollowCFrame = rootPart.CFrame
-                lastFollowY = nil -- Reset stable Y position on start
+                lastFollowY = nil 
                 noclipLoop = RunService.Stepped:Connect(function() setNoclip(true) end)
+
+                -- Create and apply BodyVelocity for stability
+                if bodyVelocity then bodyVelocity:Destroy() end
+                bodyVelocity = Instance.new("BodyVelocity")
+                bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+                bodyVelocity.Parent = rootPart
 
                 if followLoop then task.cancel(followLoop); followLoop = nil end
                 followLoop = task.spawn(function()
                     while isFollowModeActive do
-                        if humanoid then humanoid.PlatformStand = true end -- Enforce PlatformStand here
                         updateFollowTeleport()
                         task.wait(0.1)
                     end
@@ -324,7 +330,8 @@ return function(Tab, Window, WindUI, TeleportService)
                 if noclipLoop then noclipLoop:Disconnect(); noclipLoop = nil end
                 setNoclip(false)
 
-                if humanoid then humanoid.PlatformStand = false end
+                -- Destroy BodyVelocity
+                if bodyVelocity then bodyVelocity:Destroy(); bodyVelocity = nil end
 
                 if originalFollowCFrame then
                     TeleportService:moveTo(originalFollowCFrame.Position)
