@@ -125,33 +125,36 @@ return function(Tab, Window, WindUI, TeleportService)
     end
 
     local function FlingPlayer(plr)
-        if not plr or not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then
-            WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "เป้าหมายไม่ถูกต้องสำหรับการ Fling", Icon = "x" })
-            return
-        end
+        if plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = plr.Character.HumanoidRootPart
+            local humanoid = plr.Character:FindFirstChild("Humanoid")
+            
+            -- CRITICAL: Client own HRP (Bypass Ownership 2025)
+            pcall(function() hrp:SetNetworkOwner(LocalPlayer) end)
+            
+            -- RAGDOLL + PLATFORMSTAND (No reset)
+            if humanoid then
+                humanoid.PlatformStand = true
+            end
+            
+            -- SPAM LOOP: AssemblyLinearVelocity UP + ANGULAR SPIN (แรงขึ้นฟ้า + หมุนติ้ว)
+            for i = 1, 100 do  -- Spam 100 ครั้ง = บินสูง 10000+ studs
+                hrp.AssemblyLinearVelocity = Vector3.new(0, 99999, 0)  -- UP ONLY Y=99999
+                hrp.AssemblyAngularVelocity = Vector3.new(math.random(-50000,50000), math.random(-50000,50000), math.random(-50000,50000))  -- SPIN TIW
+                hrp.CFrame = hrp.CFrame * CFrame.Angles(math.rad(90), 0, 0)  -- Rotate spam
+                RunService.Heartbeat:Wait()  -- Delta time
+            end
+            
+            WindUI:Notify({ Title = "Fling UP", Content = "Fling " .. plr.Name .. " ขึ้นฟ้าแล้ว!", Icon = "arrow-up-right" })
 
-        local hrp = plr.Character.HumanoidRootPart
-        local bv = Instance.new("BodyVelocity")
-        bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
-        bv.Velocity = Vector3.new(math.random(-99999,99999), 99999, math.random(-99999,99999))
-        bv.Parent = hrp
-        
-        local ba = Instance.new("BodyAngularVelocity")
-        ba.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
-        ba.AngularVelocity = Vector3.new(math.random(-99999,99999), math.random(-99999,99999), math.random(-99999,99999))
-        ba.Parent = hrp
-        
-        -- Spam Position เพื่อ Fling แรงขึ้น (Bypass 2025)
-        for i = 1, 50 do
-            hrp.AssemblyLinearVelocity = Vector3.new(math.random(-50000,50000), 50000, math.random(-50000,50000))
-            hrp.AssemblyAngularVelocity = Vector3.new(math.random(-50000,50000), math.random(-50000,50000), math.random(-50000,50000))
-            game:GetService("RunService").Heartbeat:Wait()
+            -- Clean up (optional)
+            if humanoid then
+                task.wait(1) -- Wait a moment before re-enabling
+                humanoid.PlatformStand = false
+            end
+        else
+             WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "เป้าหมายไม่ถูกต้องสำหรับการ Fling", Icon = "x" })
         end
-        
-        WindUI:Notify({ Title = "Fling", Content = "Fling " .. plr.Name .. " แล้ว!", Icon = "arrow-up-right" })
-        task.wait(0.1) -- เพิ่มการหน่วงเวลา
-        bv:Destroy()
-        ba:Destroy()
     end
 
     -- ================================= --
@@ -409,7 +412,7 @@ return function(Tab, Window, WindUI, TeleportService)
     })
 
     UniversalSection:Button({
-        Title = "Fling Target (F3)",
+        Title = "Fling Target UP",
         Icon = "arrow-up-right",
         Callback = function()
             if selectedPlayer then
