@@ -240,22 +240,16 @@ return function(Tab, Window, WindUI, TeleportService)
         end
     })
 
-    -- Combined Spy/Follow God Mode implementation
-    local flySpeed = 50
+    -- Underground Follow (Teleport) implementation
     local isFollowModeActive = false
-    local bodyVelocity, bodyGyro
-    local followAndCameraLoop, noclipLoop
-    local isAutoDescending = false
+    local followAndCameraLoop, noclipLoop, originalFollowCFrame
 
-    local function setupFlyMovers()
-        if not bodyVelocity then
-            bodyVelocity = Instance.new("BodyVelocity")
-            bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-            bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-        end
-        if not bodyGyro then
-            bodyGyro = Instance.new("BodyGyro")
-            bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    local function setNoclip(enabled)
+        if not LocalPlayer.Character then return end
+        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = not enabled
+            end
         end
     end
 
@@ -278,45 +272,18 @@ return function(Tab, Window, WindUI, TeleportService)
             Camera.CFrame = CFrame.new(cameraPos, targetPos)
         end
 
-        -- Part 2: Update Player Movement (fully automatic)
+        -- Part 2: Update Player Movement (Teleport)
         local rootPart = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if not rootPart or not rootPart.Parent then return end
+        local targetRootPart = selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
 
-        local moveDir = Vector3.new(0, 0, 0)
+        if not rootPart or not rootPart.Parent or not targetRootPart then return end
 
-        if isAutoDescending then
-            if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                local targetRootPart = selectedPlayer.Character.HumanoidRootPart
-                local targetY = targetRootPart.Position.Y - 12 -- Dynamic target Y
-                if rootPart.Position.Y > targetY then
-                    moveDir = moveDir + Vector3.new(0, -1, 0)
-                else
-                    isAutoDescending = false -- Stop auto-descent once target Y is reached
-                end
-            else
-                isAutoDescending = false
-            end
-        else -- Auto-follow logic
-            if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                local targetRootPart = selectedPlayer.Character.HumanoidRootPart
-                local direction = targetRootPart.Position - rootPart.Position
-                local horizontalDirection = Vector3.new(direction.X, 0, direction.Z)
-                if horizontalDirection.Magnitude > 7 then
-                    moveDir = moveDir + horizontalDirection
-                end
-            end
-        end
+        local distance = (rootPart.Position - targetRootPart.Position).Magnitude
 
-        if moveDir.Magnitude > 0 then
-            bodyVelocity.Velocity = moveDir.Unit * flySpeed
-        else
-            bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-        end
-
-        if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character.PrimaryPart then
-            local targetPos = selectedPlayer.Character.PrimaryPart.Position
-            local lookAtPos = Vector3.new(targetPos.X, rootPart.Position.Y, targetPos.Z)
-            bodyGyro.CFrame = CFrame.new(rootPart.Position, lookAtPos)
+        -- Only teleport if the distance is greater than 3 studs to stay close
+        if distance > 3 then
+            local destination = targetRootPart.Position - Vector3.new(0, 10, 0) -- Teleport 10 studs under the target
+            TeleportService:moveTo(destination)
         end
     end
 
@@ -327,20 +294,12 @@ return function(Tab, Window, WindUI, TeleportService)
         Callback = function(value)
             isFollowModeActive = value
             local char = LocalPlayer.Character
-            if not char then return end
-            local humanoid = char:FindFirstChildOfClass("Humanoid")
-            local rootPart = char:FindFirstChild("HumanoidRootPart")
+            if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+            local rootPart = char.HumanoidRootPart
 
             if value then
                 if not selectedPlayer or not selectedPlayer.Character then
                     WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกเป้าหมายก่อน", Icon = "x" })
-                    task.wait()
-                    followToggle:SetValue(false)
-                    isFollowModeActive = false
-                    return
-                end
-                if not humanoid or not rootPart then
-                     WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "ไม่พบตัวละคร", Icon = "x" })
                     task.wait()
                     followToggle:SetValue(false)
                     isFollowModeActive = false
@@ -351,18 +310,10 @@ return function(Tab, Window, WindUI, TeleportService)
                 originalFollowCFrame = rootPart.CFrame
 
                 -- Activate states
-                isAutoDescending = true
                 isCameraMode = true
-
-                -- Activate God Mode
-                setupFlyMovers()
-                bodyVelocity.Parent = rootPart
-                bodyGyro.Parent = rootPart
-                humanoid.PlatformStand = true
                 noclipLoop = RunService.Stepped:Connect(function() setNoclip(true) end)
 
                 -- Activate Spy Camera
-                originalCameraCFrame = Camera.CFrame
                 cameraTarget = selectedPlayer
                 yaw, pitch, zoomDistance = 0, 0, 10
                 local function createKeybind(name, key) 
@@ -384,18 +335,13 @@ return function(Tab, Window, WindUI, TeleportService)
                 if followAndCameraLoop then followAndCameraLoop:Disconnect() end
                 followAndCameraLoop = RunService.RenderStepped:Connect(updateFollowAndCamera)
                 
-                WindUI:Notify({ Title = "ติดตาม", Content = "เปิดใช้งานโหมดติดตามอัตโนมัติ", Icon = "user-check" })
+                WindUI:Notify({ Title = "ติดตาม", Content = "เปิดใช้งานโหมดติดตาม (ใต้ดิน)", Icon = "user-check" })
             else
                 -- Deactivate everything
-                isAutoDescending = false
                 isCameraMode = false
 
                 if followAndCameraLoop then followAndCameraLoop:Disconnect(); followAndCameraLoop = nil end
                 if noclipLoop then noclipLoop:Disconnect(); noclipLoop = nil end
-
-                if bodyVelocity then bodyVelocity.Parent = nil end
-                if bodyGyro then bodyGyro.Parent = nil end
-                if humanoid then humanoid.PlatformStand = false end
                 setNoclip(false)
 
                 ContextActionService:UnbindAction("SpyCameraControlW")
@@ -407,8 +353,8 @@ return function(Tab, Window, WindUI, TeleportService)
                 Camera.CameraType = Enum.CameraType.Custom
 
                 -- Snap back to original position
-                if originalFollowCFrame and rootPart and rootPart.Parent then
-                    rootPart.CFrame = originalFollowCFrame
+                if originalFollowCFrame then
+                    TeleportService:moveTo(originalFollowCFrame.Position)
                     originalFollowCFrame = nil
                 end
 
