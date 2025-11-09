@@ -243,6 +243,8 @@ return function(Tab, Window, WindUI, TeleportService)
     -- Underground Follow (Teleport) implementation
     local isFollowModeActive = false
     local followAndCameraLoop, noclipLoop, originalFollowCFrame
+    local followDepth = 20 -- Default depth
+    local isCameraOnTarget = true
 
     local function setNoclip(enabled)
         if not LocalPlayer.Character then return end
@@ -256,8 +258,8 @@ return function(Tab, Window, WindUI, TeleportService)
     local function updateFollowAndCamera()
         if not isFollowModeActive then return end
 
-        -- Part 1: Update Camera (from original spy logic)
-        if isCameraMode and cameraTarget and cameraTarget.Character and cameraTarget.Character:FindFirstChild("Head") then
+        -- Part 1: Update Camera (conditional)
+        if isCameraOnTarget and isCameraMode and cameraTarget and cameraTarget.Character and cameraTarget.Character:FindFirstChild("Head") then
             Camera.CameraType = Enum.CameraType.Scriptable
             if Camera.CameraType ~= Enum.CameraType.Scriptable then Camera.CameraType = Enum.CameraType.Scriptable end
             UserInputService.MouseBehavior = Enum.MouseBehavior.Default
@@ -270,6 +272,11 @@ return function(Tab, Window, WindUI, TeleportService)
 
             local cameraPos = targetPos + CFrame.Angles(0, yaw, 0) * CFrame.Angles(pitch, 0, 0) * Vector3.new(0, 5, zoomDistance)
             Camera.CFrame = CFrame.new(cameraPos, targetPos)
+        else
+            -- If camera is not on target, ensure it's set to default so it follows local player
+            if Camera.CameraType ~= Enum.CameraType.Custom then
+                Camera.CameraType = Enum.CameraType.Custom
+            end
         end
 
         -- Part 2: Update Player Movement (Teleport)
@@ -282,7 +289,7 @@ return function(Tab, Window, WindUI, TeleportService)
 
         -- Only teleport if the distance is greater than 3 studs to stay close
         if distance > 3 then
-            local destination = targetRootPart.Position - Vector3.new(0, 10, 0) -- Teleport 10 studs under the target
+            local destination = targetRootPart.Position - Vector3.new(0, followDepth, 0) -- Use variable depth
             TeleportService:moveTo(destination)
         end
     end
@@ -308,6 +315,7 @@ return function(Tab, Window, WindUI, TeleportService)
                 
                 -- Store original CFrame for snap-back
                 originalFollowCFrame = rootPart.CFrame
+                isCameraOnTarget = true -- Default camera to target on activation
 
                 -- Activate states
                 isCameraMode = true
@@ -360,6 +368,35 @@ return function(Tab, Window, WindUI, TeleportService)
 
                 WindUI:Notify({ Title = "ติดตาม", Content = "ปิดใช้งานแล้ว", Icon = "user-x" })
             end
+        end
+    })
+
+    ActionSection:Button({
+        Title = "สลับมุมกล้อง",
+        Icon = "camera-switch",
+        Callback = function()
+            if isFollowModeActive then
+                isCameraOnTarget = not isCameraOnTarget
+                local status = isCameraOnTarget and "เป้าหมาย" or "ตัวเอง"
+                WindUI:Notify({ Title = "มุมกล้อง", Content = "สลับมุมกล้องไปที่: " .. status, Icon = "camera-switch" })
+            else
+                WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "ต้องเปิดโหมดติดตามก่อน", Icon = "x" })
+            end
+        end
+    })
+
+    ActionSection:Slider({
+        Title = "ปรับความลึก",
+        Desc = "ปรับระยะห่างที่จะอยู่ใต้เป้าหมาย",
+        Value = {
+            Default = 20,
+            Min = 5,
+            Max = 50
+        },
+        Step = 1,
+        Callback = function(value)
+            followDepth = value
+            WindUI:Notify({ Title = "ความลึก", Content = "ตั้งค่าความลึกเป็น: " .. value .. " studs", Icon = "move-down" })
         end
     })
     ActionSection:Button({
