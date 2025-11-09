@@ -135,6 +135,8 @@ return function(Tab, Window, WindUI, TeleportService)
     end)
 
     RunService.RenderStepped:Connect(function()
+        if isFollowModeActive then return end -- Prevent conflict with Follow mode's camera handler
+
         if isCameraMode and cameraTarget and cameraTarget.Character and cameraTarget.Character:FindFirstChild("Head") then
             Camera.CameraType = Enum.CameraType.Scriptable
             if Camera.CameraType ~= Enum.CameraType.Scriptable then
