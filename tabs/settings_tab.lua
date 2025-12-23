@@ -18,7 +18,7 @@ return function(Tab, Window, WindUI, TeleportService)
         Title = "โหมดการเคลื่อนที่",
         Desc = "เลือกวิธีที่สคริปต์จะใช้ในการวาร์ป",
         Values = {"วาร์ปทันที (เสี่ยง)", "ซอยย่อย (ปลอดภัยขึ้น)"},
-        Value = "ซอยย่อย (ปลอดภัยขึ้น)", -- New Default
+        Value = "วาร์ปทันที (เสี่ยง)", -- New Default
         Callback = function(selectedName)
             local mode = modeMapping[selectedName]
             if mode and TeleportService then
