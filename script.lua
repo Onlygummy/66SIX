@@ -25,6 +25,7 @@ local TeleportService_URL = baseURL .. "utils/TeleportService.lua?v=" .. cacheBu
 local MainTab_URL = baseURL .. "tabs/main_tab.lua?v=" .. cacheBuster
 local SettingsTab_URL = baseURL .. "tabs/settings_tab.lua?v=" .. cacheBuster
 local PositionTab_URL = baseURL .. "tabs/info_tab.lua?v=" .. cacheBuster
+local CharacterTab_URL = baseURL .. "tabs/character_tab.lua?v=" .. cacheBuster
 
 
 -- =================================================================== --
@@ -43,6 +44,7 @@ local TeleportService = loadstring(game:HttpGet(TeleportService_URL))()
 local MainTabModule = loadstring(game:HttpGet(MainTab_URL))()
 local InfoTabModule = loadstring(game:HttpGet(PositionTab_URL))()
 local SettingsTabModule = loadstring(game:HttpGet(SettingsTab_URL))()
+local CharacterTabModule = loadstring(game:HttpGet(CharacterTab_URL))()
 
 
 -- สร้างหน้าต่างหลัก (Window)
@@ -57,11 +59,13 @@ local Window = WindUI:CreateWindow({
 })
 
 -- สร้างแท็บและเรียกใช้โมดูลตามลำดับที่ต้องการ
-local MainTab = Window:Tab({ Title = "หน้าหลัก", Icon = "layout-dashboard" })
-MainTabModule(MainTab, Window, WindUI, TeleportService)
+    local MainTab = Window:Tab({ Title = "หน้าหลัก", Icon = "layout-dashboard" })
+    MainTabModule(MainTab, Window, WindUI, TeleportService)
 
-local PositionTab = Window:Tab({ Title = "ข้อมูล", Icon = "map-pin" })
-InfoTabModule(PositionTab, Window, WindUI)
+    local CharacterTab = Window:Tab({ Title = "ตัวละคร", Icon = "user" })
+    CharacterTabModule(CharacterTab, Window, WindUI, TeleportService)
+
+    local PositionTab = Window:Tab({ Title = "ข้อมูล", Icon = "map-pin" })InfoTabModule(PositionTab, Window, WindUI)
 
 local SettingsTab = Window:Tab({ Title = "ตั้งค่า", Icon = "settings" })
 SettingsTabModule(SettingsTab, Window, WindUI, TeleportService)

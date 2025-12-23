@@ -40,24 +40,7 @@ return function(Tab, Window, WindUI, TeleportService)
         end
     })
 
-    Tab:Slider({
-        Title = "ปรับความเร็วผู้เล่น",
-        Desc = "ปรับความเร็วในการเดินของตัวละคร",
-        Value = {
-            Default = 16,
-            Min = 10,
-            Max = 100
-        },
-        Step = 1,
-        Callback = function(value)
-            local LocalPlayer = game:GetService("Players").LocalPlayer
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
-                LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = value
-            end
-        end
-    })
-
-    Tab:Keybind({
+Tab:Keybind({
         Title = "ปุ่มเปิด/ปิดหน้าต่าง",
         Desc = "เปลี่ยนปุ่มสำหรับเปิด/ปิด UI",
         Value = "RightControl", -- ปุ่มเริ่มต้น
