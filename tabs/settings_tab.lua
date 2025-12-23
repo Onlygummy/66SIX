@@ -16,7 +16,7 @@ return function(Tab, Window, WindUI, TeleportService)
 
     TeleportSection:Dropdown({
         Title = "โหมดการเคลื่อนที่",
-        Desc = "เลือกวิธีที่สคริปต์จะใช้ในการวาร์ป",
+
         Values = {"วาร์ปทันที (เสี่ยง)", "ซอยย่อย (ปลอดภัยขึ้น)"},
         Value = "วาร์ปทันที (เสี่ยง)", -- New Default
         Callback = function(selectedName)
@@ -32,7 +32,7 @@ return function(Tab, Window, WindUI, TeleportService)
 
     Tab:Dropdown({
         Title = "เปลี่ยนธีม",
-        Desc = "เลือกธีมของหน้าต่าง UI",
+
         Values = {"Dark", "Light", "Midnight", "Rose", "Crimson", "Plant", "MonokaiPro"}, -- รายชื่อธีม
         Value = "Midnight", -- ธีมเริ่มต้น
         Callback = function(ThemeName)
@@ -42,7 +42,7 @@ return function(Tab, Window, WindUI, TeleportService)
 
 Tab:Keybind({
         Title = "ปุ่มเปิด/ปิดหน้าต่าง",
-        Desc = "เปลี่ยนปุ่มสำหรับเปิด/ปิด UI",
+
         Value = "RightControl", -- ปุ่มเริ่มต้น
         Callback = function(key)
             Window:SetToggleKey(Enum.KeyCode[key])
@@ -52,7 +52,7 @@ Tab:Keybind({
 
     Tab:Button({
         Title = "ปิดโปรแกรม",
-        Desc = "กดเพื่อปิดโปรแกรมทั้งหมด",
+
         Icon = "trash-2",
         Callback = function()
             Window:Destroy()

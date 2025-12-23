@@ -11,7 +11,7 @@ return function(Tab, Window, WindUI, TeleportService)
 
     PlayerSection:Slider({
         Title = "ปรับความเร็วผู้เล่น",
-        Desc = "ปรับความเร็วในการเดินของตัวละคร",
+
         Value = {
             Default = 16,
             Min = 10,
