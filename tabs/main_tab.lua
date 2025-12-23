@@ -21,6 +21,11 @@ return function(Tab, Window, WindUI, TeleportService)
     local isWPressed, isAPressed, isSPressed, isDPressed = false, false, false, false
     local targetLostDebounce = false
 
+    -- NEW: Touch control variables
+    local touchCameraSensitivity = 0.005
+    local lastPanPosition
+    local lastPinchDistance
+
     local isFollowing = false
     local followLoop = nil
     local bodyVelocity, bodyPosition
@@ -59,6 +64,8 @@ return function(Tab, Window, WindUI, TeleportService)
         yaw, pitch, zoomDistance = 0, 0, 10
         isWPressed, isAPressed, isSPressed, isDPressed = false, false, false, false
         targetLostDebounce = false
+        lastPanPosition = nil
+        lastPinchDistance = nil
 
         ContextActionService:UnbindAction("SpyCameraControlW")
         ContextActionService:UnbindAction("SpyCameraControlA")
@@ -127,9 +134,59 @@ return function(Tab, Window, WindUI, TeleportService)
     --      Persistent Event Listeners
     -- ================================= --
 
-    UserInputService.InputChanged:Connect(function(input)
-        if isCameraMode and input.UserInputType == Enum.UserInputType.MouseWheel then
-            zoomDistance = math.clamp(zoomDistance - input.Position.Z * 2, minZoom, maxZoom)
+    local function handleRotation(delta)
+        yaw = yaw - delta.X * touchCameraSensitivity
+        pitch = math.clamp(pitch - delta.Y * touchCameraSensitivity, -math.pi / 3, math.pi / 3)
+    end
+
+    local function handleZoom(delta)
+        zoomDistance = math.clamp(zoomDistance - delta, minZoom, maxZoom)
+    end
+    
+    UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+        if not isCameraMode or gameProcessedEvent then return end
+
+        if input.UserInputType == Enum.UserInputType.Touch then
+            local touches = UserInputService:GetTouches()
+            if #touches == 1 then
+                lastPanPosition = touches[1].Position
+            else
+                lastPanPosition = nil
+            end
+            
+            if #touches == 2 then
+                lastPinchDistance = (touches[1].Position - touches[2].Position).Magnitude
+            else
+                lastPinchDistance = nil
+            end
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input, gameProcessedEvent)
+        if not isCameraMode or gameProcessedEvent then return end
+        
+        if input.UserInputType == Enum.UserInputType.MouseWheel then
+            handleZoom(input.Position.Z * 2)
+        elseif input.UserInputType == Enum.UserInputType.Touch then
+            local touches = UserInputService:GetTouches()
+            if #touches == 1 and lastPanPosition then
+                handleRotation(input.Position - lastPanPosition)
+                lastPanPosition = input.Position
+            elseif #touches == 2 and lastPinchDistance then
+                local currentPinchDistance = (touches[1].Position - touches[2].Position).Magnitude
+                local delta = currentPinchDistance - lastPinchDistance
+                handleZoom(delta * 0.1)
+                lastPinchDistance = currentPinchDistance
+            end
+        end
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input, gameProcessedEvent)
+        if not isCameraMode or gameProcessedEvent then return end
+
+        if input.UserInputType == Enum.UserInputType.Touch then
+            lastPanPosition = nil
+            lastPinchDistance = nil
         end
     end)
 
@@ -144,6 +201,7 @@ return function(Tab, Window, WindUI, TeleportService)
             UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 
             local targetPos = cameraTarget.Character.Head.Position
+            -- Keyboard input (classic controls)
             if isWPressed then pitch = math.clamp(pitch - cameraSpeed, -math.pi / 3, math.pi / 3) end
             if isSPressed then pitch = math.clamp(pitch + cameraSpeed, -math.pi / 3, math.pi / 3) end
             if isAPressed then yaw = yaw + cameraSpeed end
