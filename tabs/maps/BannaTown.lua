@@ -76,6 +76,28 @@ return function(Tab, Window, WindUI, TeleportService)
         return false -- Indicate failure
     end
 
+    local function getSpecificShopPrompt()
+        -- Path updated again based on user feedback for better accuracy.
+        local attachment
+        local success, result = pcall(function()
+            -- This path is more direct and avoids using GetChildren() with an index.
+            attachment = workspace.Market.Model.Model["Mesh/Pad"].Attachment
+        end)
+
+        if not success or not attachment then
+            warn("getSpecificShopPrompt: Failed to find the attachment using the new path. Error: " .. tostring(result))
+            return nil
+        end
+
+        local prompt = attachment:FindFirstChildOfClass("ProximityPrompt")
+        if not prompt then
+            warn("getSpecificShopPrompt: ProximityPrompt not found in the attachment!")
+            return nil
+        end
+
+        return prompt
+    end
+
     local meatFarmLocation = Vector3.new(-1391.72, 16.75, -155.69) -- Position for "เนื้อ" farm
 
     local function setupFlyMovers()
@@ -154,6 +176,40 @@ return function(Tab, Window, WindUI, TeleportService)
         end
     })
 
+    local infiniteStatsThread = nil
+    Tab:Toggle({
+        Title = "สถานะเต็มตลอดเวลา",
+        Icon = "heart-pulse",
+        Desc = "ตั้งค่า Hunger และ Thristy ของคุณให้เต็ม 100 ตลอดเวลา (ทุก 0.5 วินาที)",
+        Value = false,
+        Callback = function(value)
+            if value then
+                -- Toggle is ON
+                if infiniteStatsThread then task.cancel(infiniteStatsThread) end -- Cancel previous thread just in case
+
+                infiniteStatsThread = task.spawn(function()
+                    WindUI:Notify({ Title = "สถานะ", Content = "เปิดใช้งานโหมดสถานะเต็ม", Icon = "check-circle" })
+                    while true do
+                        local hunger = LocalPlayer:FindFirstChild("Hunger")
+                        if hunger then hunger.Value = 100 end
+
+                        local thirsty = LocalPlayer:FindFirstChild("Thristy")
+                        if thirsty then thirsty.Value = 100 end
+                        
+                        task.wait(0.5)
+                    end
+                end)
+            else
+                -- Toggle is OFF
+                if infiniteStatsThread then
+                    task.cancel(infiniteStatsThread)
+                    infiniteStatsThread = nil
+                    WindUI:Notify({ Title = "สถานะ", Content = "ปิดใช้งานโหมดสถานะเต็ม", Icon = "x-circle" })
+                end
+            end
+        end
+    })
+
     Tab:Divider()
 
     -- ================================= --
@@ -166,7 +222,7 @@ return function(Tab, Window, WindUI, TeleportService)
     })
 
     local buildingLocations = {
-        { Name = "ร้านรับซื้อ", Pos = Vector3.new(373.72, 7.15, 184.99) },
+        { Name = "ร้านรับซื้อ", Pos = Vector3.new(638.69, 6.56, 171.37) },
         { Name = "ร้านขายอาหาร", Pos = Vector3.new(767.23, 6.74, 175.34) },
         { Name = "ร้านขายอุปกรณ์", Pos = Vector3.new(-303.57, 6.81, 1.26) }
     }
@@ -275,35 +331,20 @@ return function(Tab, Window, WindUI, TeleportService)
     Tab:Divider()
 
     -- ================================= --
-    --      Auto-Farm Meat
+    --      Auto-Farm
     -- ================================= --
     local AutoFarmMeatSection = Tab:Section({
-        Title = "ออโต้ฟาร์มเนื้อ",
-        Icon = "cow",
+        Title = "ออโต้ฟาร์ม",
+        Icon = "loader-pinwheel",
         Opened = true
     })
 
     local isAutoFarming = false
     local autoFarmLoop = nil
-    local currentCooldown = 1 -- Default cooldown in seconds
 
     local autoFarmStatusParagraph = AutoFarmMeatSection:Paragraph({
         Title = "สถานะ",
         Desc = "สถานะ: หยุดทำงาน"
-    })
-
-    AutoFarmMeatSection:Slider({
-        Title = "ระยะเวลา Cooldown (วินาที)",
-        Desc = "ปรับระยะเวลารอระหว่างการเก็บเกี่ยวแต่ละครั้ง",
-        Value = {
-            Default = currentCooldown,
-            Min = 1,
-            Max = 10
-        },
-        Step = 0.1,
-        Callback = function(value)
-            currentCooldown = value
-        end
     })
 
     local function findNearestCow()
@@ -346,7 +387,22 @@ return function(Tab, Window, WindUI, TeleportService)
         TeleportService:moveTo(destination)
     end
 
+    local function teleportToCowInstant(targetPart)
+        if not TeleportService or not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+        local playerRoot = LocalPlayer.Character.HumanoidRootPart
+        local targetPos = targetPart.Position
+
+        -- Calculate a position slightly in front of the target
+        local direction = (playerRoot.Position - targetPos).Unit
+        local offsetDistance = 3 -- Distance from the target to stand
+        local destination = targetPos + (direction * offsetDistance)
+        destination = Vector3.new(destination.X, targetPos.Y, destination.Z) -- Keep player at target's Y level
+
+        TeleportService:_instant(destination) -- Use _instant for forced instant teleport
+    end
+
     local SELL_POINT_LOCATION = Vector3.new(373.72, 7.15, 184.99) -- Coordinates for "ร้านรับซื้อ"
+    local CRAFTING_ACTIVATION_POINT = Vector3.new(-1442.04, 16.53, -88.63) -- Coordinates for Crafting Activation Point
 
     local function checkInventoryCapacity()
         local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui", 5)
@@ -389,69 +445,110 @@ return function(Tab, Window, WindUI, TeleportService)
     local function startAutoFarm()
         isAutoFarming = true
         autoFarmStatusParagraph:SetDesc("สถานะ: กำลังเริ่มต้น...")
-        WindUI:Notify({ Title = "ออโต้ฟาร์มเนื้อ", Content = "เริ่มระบบออโต้ฟาร์มเนื้อ", Icon = "play" })
+        WindUI:Notify({ Title = "ออโต้ฟาร์ม", Content = "เริ่มระบบออโต้ฟาร์ม", Icon = "play" })
 
         autoFarmLoop = task.spawn(function()
-            while isAutoFarming do
-                autoFarmStatusParagraph:SetDesc("สถานะ: กำลังเทเลพอร์ตไปยังฟาร์มเนื้อ...")
-                TeleportService:moveTo(meatFarmLocation)
-                task.wait(1) -- Wait for teleport to complete
+            -- Initial teleport to meatFarmLocation once at start
+            autoFarmStatusParagraph:SetDesc("สถานะ: กำลังเทเลพอร์ตไปยังฟาร์ม...")
+            TeleportService:moveTo(meatFarmLocation)
+            task.wait(0.5) -- Wait for teleport to complete
 
-                local cowsFarmedThisCycle = {}
+            while isAutoFarming do -- Continuous farming loop
+                local nearestCow = findNearestCow()
 
-                while isAutoFarming do
-                    local nearestCow = findNearestCow()
+                if nearestCow then
+                    autoFarmStatusParagraph:SetDesc("สถานะ: กำลังเคลื่อนที่ไปยัง " .. nearestCow.Parent.Name .. "...")
+                    moveToTarget(nearestCow)
+                    task.wait(0.5) -- Wait for movement
 
-                    if nearestCow and not table.find(cowsFarmedThisCycle, nearestCow) then
-                        autoFarmStatusParagraph:SetDesc("สถานะ: กำลังเคลื่อนที่ไปยัง " .. nearestCow.Parent.Name .. "...")
-                        moveToTarget(nearestCow)
-                        task.wait(0.5) -- Wait for movement
+                    autoFarmStatusParagraph:SetDesc("สถานะ: กำลังเก็บเกี่ยว " .. nearestCow.Parent.Name .. "...")
+                    
+                    local interactionAttempts = 0
+                    local maxInteractionAttempts = 10
+                    -- Loop harvest until cow is gone or max attempts reached
+                    while isAutoFarming and nearestCow.Parent and nearestCow.LocalTransparencyModifier < 1 and interactionAttempts < maxInteractionAttempts do
+                        if triggerProximityPromptTrial(nearestCow) then
+                            autoFarmStatusParagraph:SetDesc("สถานะ: เก็บเกี่ยว " .. nearestCow.Parent.Name .. " (ครั้งที่ " .. (interactionAttempts + 1) .. ")")
+                            task.wait(0.8) -- Wait 1 second between each trigger
+                        else
+                            break -- Exit if prompt fails
+                        end
+                        interactionAttempts = interactionAttempts + 1
+                    end
 
-                        autoFarmStatusParagraph:SetDesc("สถานะ: กำลังเก็บเกี่ยว " .. nearestCow.Parent.Name .. "...")
+                    -- Inventory check (runs after attempting to harvest a cow)
+                    local currentCapacity, maxCapacity = checkInventoryCapacity()
+                    if currentCapacity and maxCapacity and currentCapacity >= maxCapacity then
+                        autoFarmStatusParagraph:SetDesc("ช่องเก็บของเต็ม! กำลังวาร์ปไปจุดเปิด Crafting...")
+                        WindUI:Notify({ Title = "ออโต้ฟาร์ม", Content = "ช่องเก็บของเต็ม! กำลังวาร์ปไปจุดเปิด Crafting", Icon = "package" })
                         
-                        local interactionAttempts = 0
-                        local maxInteractionAttempts = 10 -- Prevent infinite loops if cow never disappears
-                        while nearestCow.LocalTransparencyModifier < 1 and interactionAttempts < maxInteractionAttempts do
-                            print("startAutoFarm: Attempting to trigger prompt for " .. nearestCow.Name .. " (Attempt " .. (interactionAttempts + 1) .. ")")
-                            local success = triggerProximityPrompt(nearestCow)
-                            print("startAutoFarm: triggerProximityPrompt returned: " .. tostring(success))
-                            if success then
-                                autoFarmStatusParagraph:SetDesc("สถานะ: เก็บเกี่ยว " .. nearestCow.Parent.Name .. " (ครั้งที่ " .. (interactionAttempts + 1) .. ")")
-                                task.wait(currentCooldown) -- Wait for cooldown between triggers on the same cow
-                            else
-                                -- If prompt interaction fails, maybe the prompt disappeared or is disabled
-                                -- Break the loop and move to next cow
-                                break
-                            end
-                            interactionAttempts = interactionAttempts + 1
+                        task.wait(1) -- Wait for 3 seconds before teleporting
+
+                        -- Store original Humanoid state
+                        local playerHumanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                        local originalPlatformStand = playerHumanoid and playerHumanoid.PlatformStand
+                        local originalWalkSpeed = playerHumanoid and playerHumanoid.WalkSpeed
+                        local originalJumpPower = playerHumanoid and playerHumanoid.JumpPower
+
+                        -- Freeze player
+                        if playerHumanoid then
+                            playerHumanoid.PlatformStand = true
+                            playerHumanoid.WalkSpeed = 0
+                            playerHumanoid.JumpPower = 0
                         end
 
-                        -- After the loop, if the cow is now transparent, add it to farmed list
-                        if nearestCow.LocalTransparencyModifier >= 1 then
-                            table.insert(cowsFarmedThisCycle, nearestCow)
+                        TeleportService:moveTo(CRAFTING_ACTIVATION_POINT)
+                        task.wait(0.8) -- Wait for teleport to complete
 
-                            -- Check inventory after each successful farm
-                            local currentCapacity, maxCapacity = checkInventoryCapacity()
-                            if currentCapacity and maxCapacity and currentCapacity >= maxCapacity then
-                                autoFarmStatusParagraph:SetDesc("ช่องเก็บของเต็ม! กำลังวาร์ปไปจุดรับซื้อ...")
-                                WindUI:Notify({ Title = "ออโต้ฟาร์มเนื้อ", Content = "ช่องเก็บของเต็ม! กำลังวาร์ปไปจุดรับซื้อ", Icon = "package" })
-                                TeleportService:moveTo(SELL_POINT_LOCATION)
-                                task.wait(0.1) -- Wait for teleport to complete
-                                autoFarmStatusParagraph:SetDesc("ช่องเก็บของเต็ม! หยุดระบบออโต้ฟาร์ม")
-                                WindUI:Notify({ Title = "ออโต้ฟาร์มเนื้อ", Content = "ช่องเก็บของเต็ม! หยุดระบบออโต้ฟาร์ม", Icon = "package-x" })
-                                stopAutoFarm() -- Stop the auto-farm
-                                return -- Exit the task.spawn function
+                        autoFarmStatusParagraph:SetDesc("กำลังพยายามเปิด UI Crafting...")
+                        local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui", 5)
+                        local craftingUI = playerGui and playerGui:FindFirstChild("Menu") and playerGui:FindFirstChild("Menu"):FindFirstChild("Crafting")
+
+                        local craftingPromptPart = workspace.KraftPowerStrength.Meat["Mesh/Pad"]
+                        local activationAttempts = 0
+                        local maxActivationAttempts = 20 -- Max attempts to open crafting UI
+
+                        if craftingPromptPart and craftingUI then
+                            while not craftingUI.Visible and activationAttempts < maxActivationAttempts do
+                                if triggerProximityPromptTrial(craftingPromptPart) then
+                                    autoFarmStatusParagraph:SetDesc("สถานะ: พยายามเปิด UI Crafting (ครั้งที่ " .. (interactionAttempts + 1) .. ")")
+                                    task.wait(0.5) -- Short wait between attempts
+                                else
+                                    autoFarmStatusParagraph:SetDesc("สถานะ: ไม่พบ Prompt เปิด Crafting หรือ Prompt ไม่ทำงาน")
+                                    break -- Break if prompt interaction fails
+                                end
+                                activationAttempts = activationAttempts + 1
+                            end
+
+                            if craftingUI.Visible then
+                                autoFarmStatusParagraph:SetDesc("UI Crafting เปิดแล้ว! หยุดระบบออโต้ฟาร์ม")
+                                WindUI:Notify({ Title = "ออโต้ฟาร์ม", Content = "UI Crafting เปิดแล้ว! หยุดระบบออโต้ฟาร์ม", Icon = "package-x" })
+                            else
+                                autoFarmStatusParagraph:SetDesc("ไม่สามารถเปิด UI Crafting ได้! หยุดระบบออโต้ฟาร์ม")
+                                WindUI:Notify({ Title = "ออโต้ฟาร์ม", Content = "ไม่สามารถเปิด UI Crafting ได้! หยุดระบบออโต้ฟาร์ม", Icon = "package-x" })
                             end
                         else
-                            -- If it didn't become transparent after max attempts, it means interaction failed or cow didn't disappear.
-                            -- We still need a small wait before finding the next cow.
-                            task.wait(currentCooldown)
+                            autoFarmStatusParagraph:SetDesc("ไม่พบส่วนประกอบ UI Crafting หรือ Prompt! หยุดระบบออโต้ฟาร์ม")
+                            WindUI:Notify({ Title = "ออโต้ฟาร์ม", Content = "ไม่พบส่วนประกอบ UI Crafting หรือ Prompt! หยุดระบบออโต้ฟาร์ม", Icon = "package-x" })
                         end
-                    else
-                        autoFarmStatusParagraph:SetDesc("สถานะ: ไม่พบวัวที่ยังไม่ได้เก็บเกี่ยวในบริเวณ หรือเก็บเกี่ยวครบแล้ว")
-                        task.wait(2) -- Wait before re-scanning
-                        break -- Exit inner loop to re-teleport to farm location
+                        
+                        -- Restore original Humanoid state
+                        if playerHumanoid then
+                            playerHumanoid.PlatformStand = originalPlatformStand
+                            playerHumanoid.WalkSpeed = originalWalkSpeed
+                            playerHumanoid.JumpPower = originalJumpPower
+                        end
+
+                        stopAutoFarm() -- Stop the auto-farm regardless of success
+                        return -- Exit the task.spawn function
                     end
+
+                    autoFarmStatusParagraph:SetDesc("สถานะ: หน่วงเวลาหลังเก็บเกี่ยว...")
+                    task.wait(1) -- Add a delay to mimic animation time + travel time
+                else
+                    -- No cow found, wait briefly and try again
+                    autoFarmStatusParagraph:SetDesc("สถานะ: ไม่พบวัวที่เก็บเกี่ยวได้ในบริเวณ กำลังค้นหา...")
+                    task.wait(0.1) -- Increased wait time when no cows are found to be less spammy
                 end
             end
         end)
@@ -464,97 +561,11 @@ return function(Tab, Window, WindUI, TeleportService)
             autoFarmLoop = nil
         end
         autoFarmStatusParagraph:SetDesc("สถานะ: หยุดทำงาน")
-        WindUI:Notify({ Title = "ออโต้ฟาร์มเนื้อ", Content = "หยุดระบบออโต้ฟาร์มเนื้อ", Icon = "stop" })
-    end
-
-    local isTrialAutoFarming = false
-    local trialAutoFarmLoop = nil
-    local autoFarmStatusParagraphTrial -- Forward declare
-
-    local function startTrialAutoFarm()
-        isTrialAutoFarming = true
-        autoFarmStatusParagraphTrial:SetDesc("สถานะ: กำลังเริ่มต้น...")
-        WindUI:Notify({ Title = "ออโต้ฟาร์มเนื้อ (ทดลอง)", Content = "เริ่มระบบออโต้ฟาร์มเนื้อ (ทดลอง)", Icon = "play" })
-
-        trialAutoFarmLoop = task.spawn(function()
-            -- Initial teleport to meatFarmLocation once at start
-            autoFarmStatusParagraphTrial:SetDesc("สถานะ: กำลังเทเลพอร์ตไปยังฟาร์มเนื้อ...")
-            TeleportService:moveTo(meatFarmLocation)
-            task.wait(1) -- Wait for teleport to complete
-
-            -- Find the first cow and teleport to it
-            local firstCow = findNearestCow()
-            if firstCow then
-                autoFarmStatusParagraphTrial:SetDesc("สถานะ: กำลังวาร์ปไปยังวัวตัวแรก...")
-                moveToTarget(firstCow) -- Use moveToTarget to get to the cow's position
-                task.wait(0.5) -- Wait for movement
-            else
-                autoFarmStatusParagraphTrial:SetDesc("สถานะ: ไม่พบวัวตัวแรกในบริเวณฟาร์ม...")
-                -- If no cow found, it will just start scanning from meatFarmLocation
-            end
-
-            while isTrialAutoFarming do -- Continuous farming loop
-                local nearestCow = findNearestCow()
-
-                if nearestCow then
-                    autoFarmStatusParagraphTrial:SetDesc("สถานะ: กำลังเคลื่อนที่ไปยัง " .. nearestCow.Parent.Name .. "...")
-                    moveToTarget(nearestCow)
-                    task.wait(0.5) -- Wait for movement
-
-                    autoFarmStatusParagraphTrial:SetDesc("สถานะ: กำลังเก็บเกี่ยว " .. nearestCow.Parent.Name .. "...")
-                    
-                    local interactionAttempts = 0
-                    local maxInteractionAttempts = 10
-                    while nearestCow.LocalTransparencyModifier < 1 and interactionAttempts < maxInteractionAttempts do
-                        if triggerProximityPromptTrial(nearestCow) then -- Use trial version prompt
-                            autoFarmStatusParagraphTrial:SetDesc("สถานะ: เก็บเกี่ยว " .. nearestCow.Parent.Name .. " (ครั้งที่ " .. (interactionAttempts + 1) .. ")")
-                            task.wait(1) -- Fixed cooldown for trial
-                        else
-                            break
-                        end
-                        interactionAttempts = interactionAttempts + 1
-                    end
-
-                    -- Inventory check (keep this)
-                    local currentCapacity, maxCapacity = checkInventoryCapacity()
-                    if currentCapacity and maxCapacity and currentCapacity >= maxCapacity then
-                        autoFarmStatusParagraphTrial:SetDesc("ช่องเก็บของเต็ม! กำลังวาร์ปไปจุดรับซื้อ...")
-                        WindUI:Notify({ Title = "ออโต้ฟาร์มเนื้อ (ทดลอง)", Content = "ช่องเก็บของเต็ม! กำลังวาร์ปไปจุดรับซื้อ", Icon = "package" })
-                        TeleportService:moveTo(SELL_POINT_LOCATION)
-                        task.wait(1) -- Wait for teleport to complete
-                        autoFarmStatusParagraphTrial:SetDesc("ช่องเก็บของเต็ม! หยุดระบบออโต้ฟาร์ม (ทดลอง)")
-                        WindUI:Notify({ Title = "ออโต้ฟาร์มเนื้อ (ทดลอง)", Content = "ช่องเก็บของเต็ม! หยุดระบบออโต้ฟาร์ม (ทดลอง)", Icon = "package-x" })
-                        stopTrialAutoFarm() -- Stop the auto-farm
-                        return -- Exit the task.spawn function
-                    end
-
-                    -- If cow disappeared, it's done. If not, it means interaction failed or max attempts reached.
-                    -- In trial, we don't track farmed cows, so it will be re-targeted if it reappears.
-                    -- Just wait for cooldown before next findNearestCow()
-                    task.wait(1) -- Fixed cooldown for trial before finding next cow
-
-                else
-                    -- No cow found, wait briefly and try again
-                    autoFarmStatusParagraphTrial:SetDesc("สถานะ: ไม่พบวัวที่เก็บเกี่ยวได้ในบริเวณ กำลังค้นหา...")
-                    task.wait(1) -- Wait before re-scanning
-                end
-            end
-        end)
-    end
-
-    local function stopTrialAutoFarm()
-        isTrialAutoFarming = false
-        if trialAutoFarmLoop then
-            task.cancel(trialAutoFarmLoop)
-            trialAutoFarmLoop = nil
-        end
-        autoFarmStatusParagraphTrial:SetDesc("สถานะ: หยุดทำงาน")
-        WindUI:Notify({ Title = "ออโต้ฟาร์มเนื้อ (ทดลอง)", Content = "หยุดระบบออโต้ฟาร์มเนื้อ (ทดลอง)", Icon = "stop" })
+        WindUI:Notify({ Title = "ออโต้ฟาร์ม", Content = "หยุดระบบออโต้ฟาร์ม", Icon = "stop" })
     end
 
     AutoFarmMeatSection:Toggle({
-        Title = "เปิด/ปิด ออโต้ฟาร์มเนื้อ",
-        Desc = "เปิด/ปิดระบบฟาร์มวัวอัตโนมัติ",
+        Title = "เปิด/ปิด ออโต้ฟาร์ม",
         Value = false,
         Callback = function(value)
             if value then
@@ -565,28 +576,44 @@ return function(Tab, Window, WindUI, TeleportService)
         end
     })
 
-    Tab:Divider() -- Add a divider for separation
+    Tab:Divider()
 
-    local TrialAutoFarmSection = Tab:Section({
-        Title = "ออโต้ฟาร์มเนื้อ (ทดลอง)",
-        Icon = "flask", -- A suitable icon for trial/experiment
+    local ShopManagementSection = Tab:Section({
+        Title = "การจัดการร้านค้า",
+        Icon = "store",
         Opened = true
     })
 
-    autoFarmStatusParagraphTrial = TrialAutoFarmSection:Paragraph({
-        Title = "สถานะ",
-        Desc = "สถานะ: หยุดทำงาน"
-    })
+    local forceShopOpenThread = nil -- Changed variable name for clarity
 
-    TrialAutoFarmSection:Toggle({
-        Title = "เปิด/ปิด ออโต้ฟาร์มเนื้อ (ทดลอง)",
-        Desc = "เวอร์ชันทดลอง เก็บเกี่ยวเร็วขึ้น (Cooldown 1 วินาที, Prompt ทันที)",
-        Value = false,
+    ShopManagementSection:Toggle({
+        Title = "บังคับเปิดร้านค้าตลอดเวลา",
+        Value = false, -- Default to off
         Callback = function(value)
             if value then
-                startTrialAutoFarm()
+                -- Toggle is ON: Start a new thread with a while loop
+                if forceShopOpenThread then
+                    task.cancel(forceShopOpenThread) -- Cancel any existing thread
+                end
+
+                forceShopOpenThread = task.spawn(function()
+                    while true do
+                        local shopPrompt = getSpecificShopPrompt()
+                        if shopPrompt and not shopPrompt.Enabled then
+                            shopPrompt.Enabled = true
+                        end
+                        task.wait(0.5) -- Check only twice per second
+                    end
+                end)
+                WindUI:Notify({ Title = "การจัดการร้านค้า", Content = "เปิดใช้งานโหมดบังคับเปิดร้านค้า", Icon = "lock" })
+
             else
-                stopTrialAutoFarm()
+                -- Toggle is OFF: Stop the thread
+                if forceShopOpenThread then
+                    task.cancel(forceShopOpenThread)
+                    forceShopOpenThread = nil
+                end
+                WindUI:Notify({ Title = "การจัดการร้านค้า", Content = "ปิดใช้งาน, ร้านค้าจะทำงานตามปกติ", Icon = "unlock" })
             end
         end
     })

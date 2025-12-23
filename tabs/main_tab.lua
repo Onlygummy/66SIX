@@ -135,6 +135,8 @@ return function(Tab, Window, WindUI, TeleportService)
     end)
 
     RunService.RenderStepped:Connect(function()
+        if isFollowModeActive then return end -- Prevent conflict with Follow mode's camera handler
+
         if isCameraMode and cameraTarget and cameraTarget.Character and cameraTarget.Character:FindFirstChild("Head") then
             Camera.CameraType = Enum.CameraType.Scriptable
             if Camera.CameraType ~= Enum.CameraType.Scriptable then
@@ -240,83 +242,47 @@ return function(Tab, Window, WindUI, TeleportService)
         end
     })
 
-    -- Combined Spy/Follow God Mode implementation
-    local flySpeed = 50
+    -- Underground Follow (Teleport) implementation
     local isFollowModeActive = false
-    local bodyVelocity, bodyGyro
-    local followAndCameraLoop, noclipLoop
-    local isAutoDescending = false
+    local followLoop, noclipLoop, originalFollowCFrame
+    local followDepth = 20 -- Default depth
+    local lastFollowY = nil -- For stabilizing Y-axis
+    local bodyVelocity = nil -- For stability
 
-    local function setupFlyMovers()
-        if not bodyVelocity then
-            bodyVelocity = Instance.new("BodyVelocity")
-            bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-            bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-        end
-        if not bodyGyro then
-            bodyGyro = Instance.new("BodyGyro")
-            bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    local function setNoclip(enabled)
+        if not LocalPlayer.Character then return end
+        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = not enabled
+            end
         end
     end
 
-    local function updateFollowAndCamera()
+    local function updateFollowTeleport()
         if not isFollowModeActive then return end
 
-        -- Part 1: Update Camera (from original spy logic)
-        if isCameraMode and cameraTarget and cameraTarget.Character and cameraTarget.Character:FindFirstChild("Head") then
-            Camera.CameraType = Enum.CameraType.Scriptable
-            if Camera.CameraType ~= Enum.CameraType.Scriptable then Camera.CameraType = Enum.CameraType.Scriptable end
-            UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-
-            local targetPos = cameraTarget.Character.Head.Position
-            if isWPressed then pitch = math.clamp(pitch - cameraSpeed, -math.pi / 3, math.pi / 3) end
-            if isSPressed then pitch = math.clamp(pitch + cameraSpeed, -math.pi / 3, math.pi / 3) end
-            if isAPressed then yaw = yaw + cameraSpeed end
-            if isDPressed then yaw = yaw - cameraSpeed end
-
-            local cameraPos = targetPos + CFrame.Angles(0, yaw, 0) * CFrame.Angles(pitch, 0, 0) * Vector3.new(0, 5, zoomDistance)
-            Camera.CFrame = CFrame.new(cameraPos, targetPos)
-        end
-
-        -- Part 2: Update Player Movement (fully automatic)
         local rootPart = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if not rootPart or not rootPart.Parent then return end
+        local targetRootPart = selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
 
-        local moveDir = Vector3.new(0, 0, 0)
+        if not rootPart or not rootPart.Parent or not targetRootPart then return end
 
-        if isAutoDescending then
-            if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                local targetRootPart = selectedPlayer.Character.HumanoidRootPart
-                local targetY = targetRootPart.Position.Y - 12 -- Dynamic target Y
-                if rootPart.Position.Y > targetY then
-                    moveDir = moveDir + Vector3.new(0, -1, 0)
-                else
-                    isAutoDescending = false -- Stop auto-descent once target Y is reached
-                end
+        local myPos = rootPart.Position
+        local targetPos = targetRootPart.Position
+        local horizontalDistance = (Vector2.new(myPos.X, myPos.Z) - Vector2.new(targetPos.X, targetPos.Z)).Magnitude
+
+        if horizontalDistance > 3 then
+            local destination = targetPos - Vector3.new(0, followDepth, 0)
+
+            -- Y-Stabilization Logic
+            if lastFollowY and math.abs(destination.Y - lastFollowY) < 2 then
+                -- If vertical change is small (a bob), use the last stable Y position
+                destination = Vector3.new(destination.X, lastFollowY, destination.Z)
             else
-                isAutoDescending = false
+                -- If vertical change is large (a jump/fall), update the stable Y position
+                lastFollowY = destination.Y
             end
-        else -- Auto-follow logic
-            if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                local targetRootPart = selectedPlayer.Character.HumanoidRootPart
-                local direction = targetRootPart.Position - rootPart.Position
-                local horizontalDirection = Vector3.new(direction.X, 0, direction.Z)
-                if horizontalDirection.Magnitude > 7 then
-                    moveDir = moveDir + horizontalDirection
-                end
-            end
-        end
-
-        if moveDir.Magnitude > 0 then
-            bodyVelocity.Velocity = moveDir.Unit * flySpeed
-        else
-            bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-        end
-
-        if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character.PrimaryPart then
-            local targetPos = selectedPlayer.Character.PrimaryPart.Position
-            local lookAtPos = Vector3.new(targetPos.X, rootPart.Position.Y, targetPos.Z)
-            bodyGyro.CFrame = CFrame.new(rootPart.Position, lookAtPos)
+            
+            TeleportService:_instant(destination)
         end
     end
 
@@ -327,9 +293,8 @@ return function(Tab, Window, WindUI, TeleportService)
         Callback = function(value)
             isFollowModeActive = value
             local char = LocalPlayer.Character
-            if not char then return end
-            local humanoid = char:FindFirstChildOfClass("Humanoid")
-            local rootPart = char:FindFirstChild("HumanoidRootPart")
+            if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+            local rootPart = char.HumanoidRootPart
 
             if value then
                 if not selectedPlayer or not selectedPlayer.Character then
@@ -339,80 +304,58 @@ return function(Tab, Window, WindUI, TeleportService)
                     isFollowModeActive = false
                     return
                 end
-                if not humanoid or not rootPart then
-                     WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "ไม่พบตัวละคร", Icon = "x" })
-                    task.wait()
-                    followToggle:SetValue(false)
-                    isFollowModeActive = false
-                    return
-                end
                 
-                -- Store original CFrame for snap-back
                 originalFollowCFrame = rootPart.CFrame
-
-                -- Activate states
-                isAutoDescending = true
-                isCameraMode = true
-
-                -- Activate God Mode
-                setupFlyMovers()
-                bodyVelocity.Parent = rootPart
-                bodyGyro.Parent = rootPart
-                humanoid.PlatformStand = true
+                lastFollowY = nil 
                 noclipLoop = RunService.Stepped:Connect(function() setNoclip(true) end)
 
-                -- Activate Spy Camera
-                originalCameraCFrame = Camera.CFrame
-                cameraTarget = selectedPlayer
-                yaw, pitch, zoomDistance = 0, 0, 10
-                local function createKeybind(name, key) 
-                    ContextActionService:BindActionAtPriority(name, function(_, s) 
-                        if UserInputService:GetFocusedTextBox() then return Enum.ContextActionResult.Pass end
-                        if name == "SpyCameraControlW" then isWPressed = (s == Enum.UserInputState.Begin) end
-                        if name == "SpyCameraControlA" then isAPressed = (s == Enum.UserInputState.Begin) end
-                        if name == "SpyCameraControlS" then isSPressed = (s == Enum.UserInputState.Begin) end
-                        if name == "SpyCameraControlD" then isDPressed = (s == Enum.UserInputState.Begin) end
-                        return Enum.ContextActionResult.Sink 
-                    end, false, 2001, key)
-                end
-                createKeybind("SpyCameraControlW", Enum.KeyCode.W)
-                createKeybind("SpyCameraControlA", Enum.KeyCode.A)
-                createKeybind("SpyCameraControlS", Enum.KeyCode.S)
-                createKeybind("SpyCameraControlD", Enum.KeyCode.D)
+                -- Create and apply BodyVelocity for stability
+                if bodyVelocity then bodyVelocity:Destroy() end
+                bodyVelocity = Instance.new("BodyVelocity")
+                bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+                bodyVelocity.Parent = rootPart
 
-                -- Start combined loop
-                if followAndCameraLoop then followAndCameraLoop:Disconnect() end
-                followAndCameraLoop = RunService.RenderStepped:Connect(updateFollowAndCamera)
+                if followLoop then task.cancel(followLoop); followLoop = nil end
+                followLoop = task.spawn(function()
+                    while isFollowModeActive do
+                        updateFollowTeleport()
+                        task.wait(0.1)
+                    end
+                end)
                 
-                WindUI:Notify({ Title = "ติดตาม", Content = "เปิดใช้งานโหมดติดตามอัตโนมัติ", Icon = "user-check" })
+                WindUI:Notify({ Title = "ติดตาม", Content = "เปิดใช้งานโหมดติดตาม (ใต้ดิน)", Icon = "user-check" })
             else
-                -- Deactivate everything
-                isAutoDescending = false
-                isCameraMode = false
-
-                if followAndCameraLoop then followAndCameraLoop:Disconnect(); followAndCameraLoop = nil end
+                if followLoop then task.cancel(followLoop); followLoop = nil end
                 if noclipLoop then noclipLoop:Disconnect(); noclipLoop = nil end
-
-                if bodyVelocity then bodyVelocity.Parent = nil end
-                if bodyGyro then bodyGyro.Parent = nil end
-                if humanoid then humanoid.PlatformStand = false end
                 setNoclip(false)
 
-                ContextActionService:UnbindAction("SpyCameraControlW")
-                ContextActionService:UnbindAction("SpyCameraControlA")
-                ContextActionService:UnbindAction("SpyCameraControlS")
-                ContextActionService:UnbindAction("SpyCameraControlD")
+                -- Destroy BodyVelocity
+                if bodyVelocity then bodyVelocity:Destroy(); bodyVelocity = nil end
 
-                if originalCameraCFrame then Camera.CFrame = originalCameraCFrame end
-                Camera.CameraType = Enum.CameraType.Custom
-
-                -- Snap back to original position
-                if originalFollowCFrame and rootPart and rootPart.Parent then
-                    rootPart.CFrame = originalFollowCFrame
+                if originalFollowCFrame then
+                    TeleportService:moveTo(originalFollowCFrame.Position)
                     originalFollowCFrame = nil
                 end
 
                 WindUI:Notify({ Title = "ติดตาม", Content = "ปิดใช้งานแล้ว", Icon = "user-x" })
+            end
+        end
+    })
+
+    ActionSection:Slider({
+        Title = "ปรับความลึก",
+        Desc = "ปรับระยะห่างที่จะอยู่ใต้เป้าหมาย",
+        Value = {
+            Default = 20,
+            Min = 5,
+            Max = 50
+        },
+        Step = 1,
+        Callback = function(value)
+            followDepth = value
+            if isFollowModeActive then
+                WindUI:Notify({ Title = "ความลึก", Content = "ตั้งค่าความลึกเป็น: " .. value .. " studs", Icon = "move-down" })
             end
         end
     })
