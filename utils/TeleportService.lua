@@ -1,6 +1,6 @@
 local TeleportService = {}
 TeleportService.config = {
-    mode = "phased" -- Default mode is now phased
+    mode = "instant" -- Default mode is now instant
 }
 
 local Players = game:GetService("Players")
