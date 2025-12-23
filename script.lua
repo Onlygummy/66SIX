@@ -12,7 +12,7 @@
 -- =================================================================== --
 local GITHUB_USER = "Onlygummy"
 local GITHUB_REPO = "66SIX"
-local GITHUB_BRANCH = "develop" -- <-- เปลี่ยน branch ที่นี่ (เช่น "main" หรือ "develop")
+local GITHUB_BRANCH = "main" -- <-- เปลี่ยน branch ที่นี่ (เช่น "main" หรือ "develop")
 -- =================================================================== --
 
 -- ตัวแปรป้องกัน Cache และสร้าง Base URL
@@ -26,17 +26,6 @@ local MainTab_URL = baseURL .. "tabs/main_tab.lua?v=" .. cacheBuster
 local SettingsTab_URL = baseURL .. "tabs/settings_tab.lua?v=" .. cacheBuster
 local PositionTab_URL = baseURL .. "tabs/info_tab.lua?v=" .. cacheBuster
 local CharacterTab_URL = baseURL .. "tabs/character_tab.lua?v=" .. cacheBuster
-
-
--- =================================================================== --
---      หมายเหตุ: หาก Executor ของคุณรองรับ readfile() หรือ loadfile()
---      คุณสามารถใช้โค้ดด้านล่างนี้แทนการใช้ URL ได้ เพื่อความสะดวกในการพัฒนา
--- =================================================================== --
--- local WindUI = loadstring(readfile("D:/Script/windui.lua"))()
--- local MainTabModule = loadstring(readfile("D:/Script/tabs/main_tab.lua"))()
--- local SettingsTabModule = loadstring(readfile("D:/Script/tabs/settings_tab.lua"))()
--- local SelfTabModule = loadstring(readfile("D:/Script/tabs/self_tab.lua"))()
--- =================================================================== --
 
 -- โหลดไลบรารีและโมดูลหลัก
 local WindUI = loadstring(game:HttpGet(WindUI_URL))()
