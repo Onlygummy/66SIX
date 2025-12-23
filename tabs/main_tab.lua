@@ -22,7 +22,7 @@ return function(Tab, Window, WindUI, TeleportService)
     local targetLostDebounce = false
 
     -- NEW: Touch control variables
-    local touchCameraSensitivity = 0.01 -- Increased Sensitivity
+    local touchCameraSensitivity = 0.01
     local lastPanPosition
     local lastPinchDistance
 
@@ -51,7 +51,61 @@ return function(Tab, Window, WindUI, TeleportService)
         end
     end
 
+    -- The single handler for all camera inputs (Touch, MouseWheel)
+    local function handleSpyInput(actionName, inputState, inputObject)
+        if not isCameraMode then return Enum.ContextActionResult.Pass end
 
+        -- MouseWheel Zoom
+        if inputObject.UserInputType == Enum.UserInputType.MouseWheel then
+            zoomDistance = math.clamp(zoomDistance - inputObject.Position.Z * 2, minZoom, maxZoom)
+            return Enum.ContextActionResult.Sink
+        end
+
+        -- Touch Controls
+        if inputObject.UserInputType == Enum.UserInputType.Touch then
+            local touches = UserInputService:GetTouches()
+
+            if inputState == Enum.UserInputState.Began then
+                if #touches == 1 then
+                    lastPanPosition = touches[1].Position
+                    lastPinchDistance = nil
+                elseif #touches == 2 then
+                    lastPinchDistance = (touches[1].Position - touches[2].Position).Magnitude
+                    lastPanPosition = nil
+                end
+
+            elseif inputState == Enum.UserInputState.Change then
+                if #touches == 1 and lastPanPosition then
+                    local delta = inputObject.Position - lastPanPosition
+                    yaw = yaw - delta.X * touchCameraSensitivity
+                    pitch = math.clamp(pitch - delta.Y * touchCameraSensitivity, -math.pi / 2.2, math.pi / 2.2)
+                    lastPanPosition = inputObject.Position
+                elseif #touches >= 2 and lastPinchDistance then
+                    local touch1, touch2 = touches[1], touches[2]
+                    local currentPinchDistance = (touch1.Position - touch2.Position).Magnitude
+                    local delta = currentPinchDistance - lastPinchDistance
+                    zoomDistance = math.clamp(zoomDistance - (delta * 0.2), minZoom, maxZoom)
+                    lastPinchDistance = currentPinchDistance
+                end
+
+            elseif inputState == Enum.UserInputState.End then
+                if #touches == 0 then
+                    lastPanPosition = nil
+                    lastPinchDistance = nil
+                elseif #touches == 1 then
+                    lastPanPosition = touches[1].Position
+                    lastPinchDistance = nil
+                elseif #touches >= 2 then
+                    lastPinchDistance = (touches[1].Position - touches[2].Position).Magnitude
+                    lastPanPosition = nil
+                end
+            end
+            
+            return Enum.ContextActionResult.Sink
+        end
+        
+        return Enum.ContextActionResult.Pass
+    end
 
     restoreCamera = function()
         if not isCameraMode then return end
@@ -67,6 +121,7 @@ return function(Tab, Window, WindUI, TeleportService)
         lastPanPosition = nil
         lastPinchDistance = nil
 
+        ContextActionService:UnbindAction("SpyCamInput")
         ContextActionService:UnbindAction("SpyCameraControlW")
         ContextActionService:UnbindAction("SpyCameraControlA")
         ContextActionService:UnbindAction("SpyCameraControlS")
@@ -77,12 +132,10 @@ return function(Tab, Window, WindUI, TeleportService)
             LocalPlayer.Character.Humanoid.JumpPower = 50
         end
         setPlayerScriptsEnabled(true)
-
     end
 
     local function moveCameraToPlayer(targetPlayer)
         if not targetPlayer or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("Head") then
-
             return false
         end
         
@@ -90,6 +143,9 @@ return function(Tab, Window, WindUI, TeleportService)
         originalCameraCFrame = Camera.CFrame
         cameraTarget = targetPlayer
         yaw, pitch, zoomDistance = 0, 0, 10
+
+        -- Bind all camera controls
+        ContextActionService:BindActionAtPriority("SpyCamInput", handleSpyInput, false, 2002, Enum.UserInputType.MouseWheel, Enum.UserInputType.Touch)
 
         local function createKeybind(name, key) 
             ContextActionService:BindActionAtPriority(name, function(_, state) 
@@ -120,86 +176,20 @@ return function(Tab, Window, WindUI, TeleportService)
         if not TeleportService then return end -- Safety check
 
         local targetRoot = targetPlayer.Character.HumanoidRootPart
-        local destination = targetRoot.Position + Vector3.new(0, 5, 5) -- Calculate destination Vector3
+        local destination = targetRoot.Position + Vector3.new(0, 5, 5)
 
         TeleportService:moveTo(destination)
-
     end
 
     -- ================================= --
-    --      Persistent Event Listeners (REVISED FOR MOBILE)
+    --      Persistent Event Listeners
     -- ================================= --
 
-    local function handleRotation(delta)
-        yaw = yaw - delta.X * touchCameraSensitivity
-        pitch = math.clamp(pitch - delta.Y * touchCameraSensitivity, -math.pi / 2.2, math.pi / 2.2) -- Wider angle
-    end
-
-    local function handleZoom(delta)
-        zoomDistance = math.clamp(zoomDistance - delta, minZoom, maxZoom)
-    end
-    
-    UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
-        if not isCameraMode or gameProcessedEvent then return end
-
-        if input.UserInputType == Enum.UserInputType.Touch then
-            local touches = UserInputService:GetTouches()
-            if #touches == 1 then
-                lastPanPosition = touches[1].Position
-                lastPinchDistance = nil -- Ensure pinch state is cleared
-            elseif #touches == 2 then
-                lastPinchDistance = (touches[1].Position - touches[2].Position).Magnitude
-                lastPanPosition = nil -- Ensure pan state is cleared
-            end
-        end
-    end)
-    
-    UserInputService.InputChanged:Connect(function(input, gameProcessedEvent)
-        if not isCameraMode or gameProcessedEvent then return end
-        
-        if input.UserInputType == Enum.UserInputType.MouseWheel then
-            handleZoom(input.Position.Z * 2)
-        elseif input.UserInputType == Enum.UserInputType.Touch then
-            local touches = UserInputService:GetTouches()
-            if #touches == 1 and lastPanPosition then
-                -- Single finger drag for rotation
-                handleRotation(input.Position - lastPanPosition)
-                lastPanPosition = input.Position
-            elseif #touches >= 2 and lastPinchDistance then
-                -- Two or more finger pinch for zoom
-                local touch1 = touches[1]
-                local touch2 = touches[2]
-                local currentPinchDistance = (touch1.Position - touch2.Position).Magnitude
-                local delta = currentPinchDistance - lastPinchDistance
-                handleZoom(delta * 0.2) -- Increased sensitivity
-                lastPinchDistance = currentPinchDistance
-            end
-        end
-    end)
-    
-    UserInputService.InputEnded:Connect(function(input, gameProcessedEvent)
-        if not isCameraMode or gameProcessedEvent then return end
-
-        if input.UserInputType == Enum.UserInputType.Touch then
-            -- Check remaining touches to transition state, e.g., from pinch to pan
-            local touches = UserInputService:GetTouches()
-            if #touches == 1 then
-                lastPanPosition = touches[1].Position
-                lastPinchDistance = nil
-            elseif #touches >= 2 then
-                -- This case might happen if more than 2 fingers were used
-                lastPinchDistance = (touches[1].Position - touches[2].Position).Magnitude
-                lastPanPosition = nil
-            else
-                -- No touches left
-                lastPanPosition = nil
-                lastPinchDistance = nil
-            end
-        end
-    end)
+    -- All input logic is now handled by ContextActionService and the handleSpyInput function.
+    -- The RenderStepped loop only needs to apply the values.
 
     RunService.RenderStepped:Connect(function()
-        if isFollowModeActive then return end -- Prevent conflict with Follow mode's camera handler
+        if isFollowModeActive then return end
 
         if isCameraMode and cameraTarget and cameraTarget.Character and cameraTarget.Character:FindFirstChild("Head") then
             Camera.CameraType = Enum.CameraType.Scriptable
@@ -209,7 +199,7 @@ return function(Tab, Window, WindUI, TeleportService)
             UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 
             local targetPos = cameraTarget.Character.Head.Position
-            -- Keyboard input (classic controls)
+            -- Keyboard input for rotation (classic controls)
             if isWPressed then pitch = math.clamp(pitch - cameraSpeed, -math.pi / 2.2, math.pi / 2.2) end
             if isSPressed then pitch = math.clamp(pitch + cameraSpeed, -math.pi / 2.2, math.pi / 2.2) end
             if isAPressed then yaw = yaw + cameraSpeed end
@@ -226,8 +216,6 @@ return function(Tab, Window, WindUI, TeleportService)
                 restoreCamera()
             end
         end
-
-
     end)
 
     -- ================================= --
