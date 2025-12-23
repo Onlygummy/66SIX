@@ -22,7 +22,7 @@ return function(Tab, Window, WindUI, TeleportService)
     local targetLostDebounce = false
 
     -- NEW: Touch control variables
-    local touchCameraSensitivity = 0.005
+    local touchCameraSensitivity = 0.01 -- Increased Sensitivity
     local lastPanPosition
     local lastPinchDistance
 
@@ -78,8 +78,6 @@ return function(Tab, Window, WindUI, TeleportService)
         end
         setPlayerScriptsEnabled(true)
 
-        -- spyButton is now a toggle, no need to set title
-
     end
 
     local function moveCameraToPlayer(targetPlayer)
@@ -114,8 +112,6 @@ return function(Tab, Window, WindUI, TeleportService)
             LocalPlayer.Character.Humanoid.JumpPower = 0
         end
         
-        -- spyButton is now a toggle, no need to set title
-
         return true
     end
 
@@ -131,12 +127,12 @@ return function(Tab, Window, WindUI, TeleportService)
     end
 
     -- ================================= --
-    --      Persistent Event Listeners
+    --      Persistent Event Listeners (REVISED FOR MOBILE)
     -- ================================= --
 
     local function handleRotation(delta)
         yaw = yaw - delta.X * touchCameraSensitivity
-        pitch = math.clamp(pitch - delta.Y * touchCameraSensitivity, -math.pi / 3, math.pi / 3)
+        pitch = math.clamp(pitch - delta.Y * touchCameraSensitivity, -math.pi / 2.2, math.pi / 2.2) -- Wider angle
     end
 
     local function handleZoom(delta)
@@ -150,14 +146,10 @@ return function(Tab, Window, WindUI, TeleportService)
             local touches = UserInputService:GetTouches()
             if #touches == 1 then
                 lastPanPosition = touches[1].Position
-            else
-                lastPanPosition = nil
-            end
-            
-            if #touches == 2 then
+                lastPinchDistance = nil -- Ensure pinch state is cleared
+            elseif #touches == 2 then
                 lastPinchDistance = (touches[1].Position - touches[2].Position).Magnitude
-            else
-                lastPinchDistance = nil
+                lastPanPosition = nil -- Ensure pan state is cleared
             end
         end
     end)
@@ -170,12 +162,16 @@ return function(Tab, Window, WindUI, TeleportService)
         elseif input.UserInputType == Enum.UserInputType.Touch then
             local touches = UserInputService:GetTouches()
             if #touches == 1 and lastPanPosition then
+                -- Single finger drag for rotation
                 handleRotation(input.Position - lastPanPosition)
                 lastPanPosition = input.Position
-            elseif #touches == 2 and lastPinchDistance then
-                local currentPinchDistance = (touches[1].Position - touches[2].Position).Magnitude
+            elseif #touches >= 2 and lastPinchDistance then
+                -- Two or more finger pinch for zoom
+                local touch1 = touches[1]
+                local touch2 = touches[2]
+                local currentPinchDistance = (touch1.Position - touch2.Position).Magnitude
                 local delta = currentPinchDistance - lastPinchDistance
-                handleZoom(delta * 0.1)
+                handleZoom(delta * 0.2) -- Increased sensitivity
                 lastPinchDistance = currentPinchDistance
             end
         end
@@ -185,8 +181,20 @@ return function(Tab, Window, WindUI, TeleportService)
         if not isCameraMode or gameProcessedEvent then return end
 
         if input.UserInputType == Enum.UserInputType.Touch then
-            lastPanPosition = nil
-            lastPinchDistance = nil
+            -- Check remaining touches to transition state, e.g., from pinch to pan
+            local touches = UserInputService:GetTouches()
+            if #touches == 1 then
+                lastPanPosition = touches[1].Position
+                lastPinchDistance = nil
+            elseif #touches >= 2 then
+                -- This case might happen if more than 2 fingers were used
+                lastPinchDistance = (touches[1].Position - touches[2].Position).Magnitude
+                lastPanPosition = nil
+            else
+                -- No touches left
+                lastPanPosition = nil
+                lastPinchDistance = nil
+            end
         end
     end)
 
@@ -202,8 +210,8 @@ return function(Tab, Window, WindUI, TeleportService)
 
             local targetPos = cameraTarget.Character.Head.Position
             -- Keyboard input (classic controls)
-            if isWPressed then pitch = math.clamp(pitch - cameraSpeed, -math.pi / 3, math.pi / 3) end
-            if isSPressed then pitch = math.clamp(pitch + cameraSpeed, -math.pi / 3, math.pi / 3) end
+            if isWPressed then pitch = math.clamp(pitch - cameraSpeed, -math.pi / 2.2, math.pi / 2.2) end
+            if isSPressed then pitch = math.clamp(pitch + cameraSpeed, -math.pi / 2.2, math.pi / 2.2) end
             if isAPressed then yaw = yaw + cameraSpeed end
             if isDPressed then yaw = yaw - cameraSpeed end
 

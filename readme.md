@@ -7,7 +7,7 @@
 คัดลอกและรันสคริปต์ด้านล่างนี้ใน Executor ของคุณ:
 
 ```lua
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Onlygummy/66SIX/main/script.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Onlygummy/66SIX/develop/script.lua"))()
 ```
 
 ## ฟีเจอร์หลัก

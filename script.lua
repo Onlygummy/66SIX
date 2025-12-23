@@ -38,7 +38,7 @@ local CharacterTabModule = loadstring(game:HttpGet(CharacterTab_URL))()
 
 -- สร้างหน้าต่างหลัก (Window)
 local Window = WindUI:CreateWindow({
-    Title = "66SIX",
+    Title = "66SIX (DEV)",
     Size = UDim2.new(0, 580, 0, 460),
     Theme = "Rose",
     ToggleKey = Enum.KeyCode.RightControl,
