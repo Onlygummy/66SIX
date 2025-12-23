@@ -72,13 +72,12 @@ return function(Tab, Window, WindUI, TeleportService)
         setPlayerScriptsEnabled(true)
 
         -- spyButton is now a toggle, no need to set title
-        if statusParagraph then statusParagraph:SetDesc("เป้าหมาย: " .. (selectedPlayer and selectedPlayer.Name or "ยังไม่ได้เลือก")) end
-        WindUI:Notify({ Title = "สถานะ", Content = "ออกจากโหมดส่องแล้ว", Icon = "camera-off" })
+
     end
 
     local function moveCameraToPlayer(targetPlayer)
         if not targetPlayer or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("Head") then
-            WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "เป้าหมายไม่ถูกต้อง", Icon = "x" })
+
             return false
         end
         
@@ -109,7 +108,7 @@ return function(Tab, Window, WindUI, TeleportService)
         end
         
         -- spyButton is now a toggle, no need to set title
-        WindUI:Notify({ Title = "สถานะ", Content = "เข้าสู่โหมดส่อง! ใช้ WASD ควบคุม", Icon = "camera" })
+
         return true
     end
 
@@ -121,7 +120,7 @@ return function(Tab, Window, WindUI, TeleportService)
         local destination = targetRoot.Position + Vector3.new(0, 5, 5) -- Calculate destination Vector3
 
         TeleportService:moveTo(destination)
-        WindUI:Notify({ Title = "สำเร็จ", Content = "กำลังเคลื่อนที่ไปยัง " .. targetPlayer.Name, Icon = "check" })
+
     end
 
     -- ================================= --
@@ -156,7 +155,6 @@ return function(Tab, Window, WindUI, TeleportService)
 
         elseif isCameraMode and not targetLostDebounce then
             targetLostDebounce = true
-            if statusParagraph then statusParagraph:SetDesc("เป้าหมาย: หายไป (รอ 3 วินาที)") end
             task.wait(3)
             if isCameraMode and (not cameraTarget or not cameraTarget.Character or not cameraTarget.Character:FindFirstChild("Head")) then
                 restoreCamera()
@@ -177,23 +175,14 @@ return function(Tab, Window, WindUI, TeleportService)
         Opened = true
     })
 
-    statusParagraph = TargetSection:Paragraph({
-        Title = "สถานะ",
-        Desc = "เป้าหมาย: ยังไม่ได้เลือก"
-    })
+
 
     playerDropdown = TargetSection:Dropdown({
         Title = "เลือกเป้าหมาย",
-        Desc = "เลือกผู้เล่นที่จะส่องหรือเทเลพอร์ต",
         Values = {},
         SearchBarEnabled = true,
         Callback = function(playerName)
             selectedPlayer = Players:FindFirstChild(playerName)
-            if selectedPlayer then
-                statusParagraph:SetDesc("เป้าหมาย: " .. selectedPlayer.Name)
-            else
-                statusParagraph:SetDesc("เป้าหมาย: ไม่พบผู้เล่น")
-            end
             playerDropdown:Close()
         end
     })
@@ -213,7 +202,6 @@ return function(Tab, Window, WindUI, TeleportService)
         Icon = "refresh-cw",
         Callback = function()
             refreshPlayerList()
-            WindUI:Notify({ Title = "สำเร็จ", Content = "รีเฟรชรายชื่อผู้เล่นแล้ว", Icon = "check" })
         end
     })
 
@@ -298,7 +286,7 @@ return function(Tab, Window, WindUI, TeleportService)
 
             if value then
                 if not selectedPlayer or not selectedPlayer.Character then
-                    WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกเป้าหมายก่อน", Icon = "x" })
+
                     task.wait()
                     followToggle:SetValue(false)
                     isFollowModeActive = false
@@ -324,7 +312,7 @@ return function(Tab, Window, WindUI, TeleportService)
                     end
                 end)
                 
-                WindUI:Notify({ Title = "ติดตาม", Content = "เปิดใช้งานโหมดติดตาม (ใต้ดิน)", Icon = "user-check" })
+
             else
                 if followLoop then task.cancel(followLoop); followLoop = nil end
                 if noclipLoop then noclipLoop:Disconnect(); noclipLoop = nil end
@@ -338,14 +326,13 @@ return function(Tab, Window, WindUI, TeleportService)
                     originalFollowCFrame = nil
                 end
 
-                WindUI:Notify({ Title = "ติดตาม", Content = "ปิดใช้งานแล้ว", Icon = "user-x" })
+
             end
         end
     })
 
     ActionSection:Slider({
         Title = "ปรับความลึก",
-        Desc = "ปรับระยะห่างที่จะอยู่ใต้เป้าหมาย",
         Value = {
             Default = 20,
             Min = 5,
@@ -355,7 +342,7 @@ return function(Tab, Window, WindUI, TeleportService)
         Callback = function(value)
             followDepth = value
             if isFollowModeActive then
-                WindUI:Notify({ Title = "ความลึก", Content = "ตั้งค่าความลึกเป็น: " .. value .. " studs", Icon = "move-down" })
+
             end
         end
     })
@@ -366,7 +353,7 @@ return function(Tab, Window, WindUI, TeleportService)
             if selectedPlayer then
                 teleportToPlayer(selectedPlayer)
             else
-                WindUI:Notify({ Title = "ข้อผิดพลาด", Content = "กรุณาเลือกเป้าหมายก่อน", Icon = "x" })
+
             end
         end
     })
