@@ -23,7 +23,7 @@ return function(Tab, Window, WindUI, TeleportService)
             local mode = modeMapping[selectedName]
             if mode and TeleportService then
                 TeleportService:setMode(mode)
-                WindUI:Notify({ Title = "ตั้งค่า", Content = "เปลี่ยนโหมดการเคลื่อนที่เป็น: " .. selectedName })
+
             end
         end
     })
@@ -46,7 +46,7 @@ Tab:Keybind({
         Value = "RightControl", -- ปุ่มเริ่มต้น
         Callback = function(key)
             Window:SetToggleKey(Enum.KeyCode[key])
-            WindUI:Notify({ Title = "ตั้งค่า", Content = "เปลี่ยนปุ่มเปิด/ปิดเป็น " .. key })
+
         end
     })
 
