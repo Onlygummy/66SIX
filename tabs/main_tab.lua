@@ -72,7 +72,6 @@ return function(Tab, Window, WindUI, TeleportService)
         setPlayerScriptsEnabled(true)
 
         -- spyButton is now a toggle, no need to set title
-        if statusParagraph then statusParagraph:SetDesc("เป้าหมาย: " .. (selectedPlayer and selectedPlayer.Name or "ยังไม่ได้เลือก")) end
         WindUI:Notify({ Title = "สถานะ", Content = "ออกจากโหมดส่องแล้ว", Icon = "camera-off" })
     end
 
@@ -156,7 +155,6 @@ return function(Tab, Window, WindUI, TeleportService)
 
         elseif isCameraMode and not targetLostDebounce then
             targetLostDebounce = true
-            if statusParagraph then statusParagraph:SetDesc("เป้าหมาย: หายไป (รอ 3 วินาที)") end
             task.wait(3)
             if isCameraMode and (not cameraTarget or not cameraTarget.Character or not cameraTarget.Character:FindFirstChild("Head")) then
                 restoreCamera()
@@ -177,23 +175,14 @@ return function(Tab, Window, WindUI, TeleportService)
         Opened = true
     })
 
-    statusParagraph = TargetSection:Paragraph({
-        Title = "สถานะ",
-        Desc = "เป้าหมาย: ยังไม่ได้เลือก"
-    })
+
 
     playerDropdown = TargetSection:Dropdown({
         Title = "เลือกเป้าหมาย",
-        Desc = "เลือกผู้เล่นที่จะส่องหรือเทเลพอร์ต",
         Values = {},
         SearchBarEnabled = true,
         Callback = function(playerName)
             selectedPlayer = Players:FindFirstChild(playerName)
-            if selectedPlayer then
-                statusParagraph:SetDesc("เป้าหมาย: " .. selectedPlayer.Name)
-            else
-                statusParagraph:SetDesc("เป้าหมาย: ไม่พบผู้เล่น")
-            end
             playerDropdown:Close()
         end
     })
